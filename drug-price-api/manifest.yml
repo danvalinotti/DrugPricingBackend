@@ -1,0 +1,6 @@
+application:
+- name: drug-pricing
+  path: build/libs/drug-price-api-0.0.1-SNAPSHOT.jar
+  memory: 512M
+  instances: 1
+  buildpack: java_buildpack
