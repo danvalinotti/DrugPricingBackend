@@ -1,0 +1,25 @@
+package com.galaxe.drugpriceapi.web.nap.masterList;
+
+import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.List;
+
+@Document(collection = "masterList")
+@Getter
+@Setter
+@AllArgsConstructor
+public class MasterList {
+
+    List<MongoEntity> drug;
+    BatchDetails batchDetails;
+    int totalBatches;
+
+    public MasterList(){}
+
+}

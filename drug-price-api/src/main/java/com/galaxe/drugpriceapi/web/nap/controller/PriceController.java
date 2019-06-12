@@ -4,6 +4,9 @@ import com.galaxe.drugpriceapi.model.*;
 import com.galaxe.drugpriceapi.repositories.DrugNAPRepository;
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.blinkhealth.Blink;
+import com.galaxe.drugpriceapi.web.nap.masterList.BatchDetails;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterList;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
@@ -12,6 +15,7 @@ import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
 import com.galaxe.drugpriceapi.web.nap.ui.ZipcodeConverter;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
+import com.mongodb.Mongo;
 import org.decimal4j.util.DoubleRounder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -26,6 +30,9 @@ import java.util.concurrent.*;
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PriceController {
+
+    @Autowired
+    MasterListService masterListService;
 
     private final String CSRF_TOKEN = "Hi6yGXfg-vppErZsd2KXvKmH9LxjPBNJeK48";
 
@@ -78,8 +85,8 @@ public class PriceController {
             System.out.println("Task Run count :: " + count);
             List<MongoEntity> entities = mongoEntityRepo.findAll();
             if (!CollectionUtils.isEmpty(entities)) {
-                entities.forEach(entity -> {
-                    try {
+                entities.forEach(entity -> {   //For each drug in dashboard
+                    try {//Saves updated drug to dashboard
                         addDrugToDashBoard(constructRequestObjectFromMongo(entity));
                     } catch (Throwable t) {
                         System.out.println(t.getCause());
@@ -104,7 +111,17 @@ public class PriceController {
     }
 
     private void setScheduledFutureJob() {
-        ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.HOURS);
+       ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.HOURS);
+    }
+
+    @GetMapping("/addToMasterList")
+    public MasterList addToMasterList(){
+        MasterList m = new MasterList();
+        List<MongoEntity> records = mongoEntityRepo.findAll();
+        m.setDrug(records);
+        m.setBatchDetails(new BatchDetails(1,new Date()));
+        m.setTotalBatches(1);
+        return masterListService.add(m);
     }
 
     //Returns Dashboard Drugs
@@ -244,6 +261,17 @@ public class PriceController {
         else
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
 
+        if(inside.isDone()){
+            System.out.println("insideRx done");
+        }if(usPharmacy.isDone()){
+            System.out.println("usPharm done");
+        }if(wellRxFuture.isDone()){
+            System.out.println("wellRx done");
+        }if(medImpactFuture.isDone()){
+            System.out.println("MedImpact done");
+        }if(singleCareFuture.isDone()){
+            System.out.println("SingleCare done");
+        }
 
         System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
@@ -513,5 +541,6 @@ public class PriceController {
         return currentObject;
 
     }
+
 
 }
