@@ -2,7 +2,9 @@ package com.galaxe.drugpriceapi.web.nap.masterList;
 
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
+import com.galaxe.drugpriceapi.web.nap.ui.Program;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,6 +13,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+@CrossOrigin
 @RestController
 public class MasterListTestController {
     @Autowired
@@ -19,14 +22,31 @@ public class MasterListTestController {
     @Autowired
     MongoEntityRepository mongoEntityRepo;
 
+    @Autowired
+    MasterListRepository masterListRepository;
+
     @GetMapping("/masterList/addToMasterList")
     public MasterList addToMasterList(){
-        MasterList m = new MasterList();
-        List<MongoEntity> records = mongoEntityRepo.findAll();
-        m.setDrug(records);
-        m.setBatchDetails(new BatchDetails(2,new Date()));
-        m.setTotalBatches(2);
-        return masterListService.add(m);
+
+        return masterListService.add();
+    }
+
+
+
+
+    @GetMapping("/masterList/getByDate/{date}")
+    public List<MasterList> addToMasterList(@PathVariable String date){
+        final Calendar calendar =  Calendar.getInstance();
+        String day = date.substring(3,5) ;
+        String month= date.substring(0,2);
+        String year =  date.substring(6);
+        Integer i =Integer.parseInt(month)-1;
+        calendar.set(Integer.parseInt(year),i,Integer.parseInt(day),0,0);
+        Date start = calendar.getTime();
+        calendar.add(Calendar.DATE, +1);
+        Date end = calendar.getTime();
+
+        return masterListService.getMasterListsBetweenTime(start,end);
     }
     @GetMapping("/masterList/getAll")
     public List<MasterList> getAllMasterLists(){

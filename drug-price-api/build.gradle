@@ -21,6 +21,12 @@ task fatJar(type: Jar) {
 	from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 	with jar
 }
+bootJar {
+    rootSpec.filesMatching('**/*.jar', { jar ->
+        String groupId = jar.file.parentFile.parentFile.parentFile.parentFile.name
+        jar.name = "$groupId-${jar.name}"
+    })
+}
 repositories {
 	mavenCentral()
 }

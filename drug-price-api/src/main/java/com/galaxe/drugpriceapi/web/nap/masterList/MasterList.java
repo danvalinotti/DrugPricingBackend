@@ -22,4 +22,13 @@ public class MasterList {
 
     public MasterList(){}
 
+    public MongoEntity getDrugByNDC(String ndc, String quantity, String zipCode) {
+        for (MongoEntity entity:this.drug) {
+            if(entity.getNdc().equals(ndc) &&entity.getZipcode().equals(zipCode)
+                    && entity.getQuantity().equals(quantity)){
+                return entity;
+            }
+        }
+        return null;
+    }
 }

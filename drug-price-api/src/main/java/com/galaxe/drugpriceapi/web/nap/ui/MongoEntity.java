@@ -51,6 +51,8 @@ public class MongoEntity {
     @LastModifiedDate
     private DateTime modified;
 
+    private String diffFromLast;
+
     public String getCompositeId(String ndc, String dosage, String quantity, String zipcode) {
         return ndc + dosage + quantity + zipcode;
     }

@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.util.CollectionUtils;
 
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -45,6 +48,11 @@ public class PriceController {
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
 
     private Boolean flag = true;
+
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/New_York"));
+    ArrayList<ZonedDateTime> times = new ArrayList<>();
+    int nexttimeIndex;
+
 
     @Autowired
     private MongoEntityRepository mongoEntityRepo;
@@ -80,6 +88,7 @@ public class PriceController {
     private final List<Program> programs = new ArrayList<>();
 
     private Runnable startBatchJob() {
+        System.out.println("startBatchJob");
         Runnable task = () -> {
             count++;
             System.out.println("Task Run count :: " + count);
@@ -94,6 +103,7 @@ public class PriceController {
                 });
             }
             System.out.println("Tasked ended count :: " + count);
+            masterListService.add();
         };
         return task;
     }
@@ -110,18 +120,67 @@ public class PriceController {
         return obj;
     }
 
-    private void setScheduledFutureJob() {
+    private void test() {
        ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.HOURS);
     }
+    private void test2() {
+        System.out.println("setScheduledFutureJob");
+        ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.SECONDS);
+    }
+    private void setScheduledFutureJob(){
 
-    @GetMapping("/addToMasterList")
-    public MasterList addToMasterList(){
-        MasterList m = new MasterList();
-        List<MongoEntity> records = mongoEntityRepo.findAll();
-        m.setDrug(records);
-        m.setBatchDetails(new BatchDetails(1,new Date()));
-        m.setTotalBatches(1);
-        return masterListService.add(m);
+
+
+        if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0).plusDays(1));
+        }else if(now.compareTo(now.withHour(16).withMinute(0).withSecond(0)) > 0){
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+        }else if(now.compareTo(now.withHour(12).withMinute(0).withSecond(0)) > 0){
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+        }else if(now.compareTo(now.withHour(8).withMinute(0).withSecond(0)) > 0){
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+        }else if(now.compareTo(now.withHour(5).withMinute(0).withSecond(0)) > 0){
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+        }else{
+            this.times.add(now.withHour(5).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(8).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+        }
+
+        for(int i = 0 ; i<this.times.size();i++){
+            ZonedDateTime nextRun = this.times.get(i);
+            Duration duration = Duration.between(now, nextRun);
+            long initalDelay = duration.getSeconds();
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            scheduler.scheduleAtFixedRate(startBatchJob(),
+                    initalDelay,
+                    TimeUnit.DAYS.toSeconds(1),
+                    TimeUnit.SECONDS);
+        }
+
+
     }
 
     //Returns Dashboard Drugs
@@ -232,7 +291,7 @@ public class PriceController {
     private MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
 
         long start = System.currentTimeMillis();
-        System.out.println("Start time : " + start);
+      //  System.out.println("Start time : " + start);
         Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
         String brandType = getBrandIndicator(requestObject).intern();
 
@@ -261,19 +320,9 @@ public class PriceController {
         else
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
 
-        if(inside.isDone()){
-            System.out.println("insideRx done");
-        }if(usPharmacy.isDone()){
-            System.out.println("usPharm done");
-        }if(wellRxFuture.isDone()){
-            System.out.println("wellRx done");
-        }if(medImpactFuture.isDone()){
-            System.out.println("MedImpact done");
-        }if(singleCareFuture.isDone()){
-            System.out.println("SingleCare done");
-        }
 
-        System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
+
+       // System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
         List<InsideRx> insideRxPrices = inside.get();
         List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
