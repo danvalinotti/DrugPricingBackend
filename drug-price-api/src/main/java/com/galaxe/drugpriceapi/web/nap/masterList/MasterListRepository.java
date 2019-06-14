@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MasterListRepository extends MongoRepository<MasterList,String> {
@@ -18,4 +19,6 @@ public interface MasterListRepository extends MongoRepository<MasterList,String>
 
     @Query(value="{}", fields="{ drug : 0 }")
     List<MasterList> getAllBatches();
+
+    Optional<MasterList> findTopByOrderByTotalBatchesDesc();
 }

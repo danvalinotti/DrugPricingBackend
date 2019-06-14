@@ -127,10 +127,17 @@ public class APIClient {
 
     private MedImpact getMedImpactProgramResult(String url) {
         WebClient webClient = WebClient.create(url);
-        String str = webClient
-                .get()
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve().bodyToMono(String.class).block().intern();
+        String str = "";
+        try {
+             str = webClient
+                    .get()
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve().bodyToMono(String.class).block().intern();
+        }catch(Exception e){
+             str = "";
+             System.out.println(str);
+            System.out.println(e.toString());
+        }
         return gson.fromJson(str, MedImpact.class);
 
     }

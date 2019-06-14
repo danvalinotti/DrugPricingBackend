@@ -1,13 +1,12 @@
 package com.galaxe.drugpriceapi.web.nap.masterList;
 
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
+import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
+import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Calendar;
 import java.util.Date;
@@ -25,10 +24,18 @@ public class MasterListTestController {
     @Autowired
     MasterListRepository masterListRepository;
 
+    @Autowired
+    PriceController priceController;
+
     @GetMapping("/masterList/addToMasterList")
     public MasterList addToMasterList(){
 
-        return masterListService.add();
+        try {
+            return masterListService.add();
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return null;
+        }
     }
 
 
@@ -48,6 +55,21 @@ public class MasterListTestController {
 
         return masterListService.getMasterListsBetweenTime(start,end);
     }
+    @PostMapping("/masterList/addDrugToCurrent")
+    public void addDrugToMasterList(@RequestBody MongoEntity requestObject) throws Throwable {
+
+        MongoEntity newDrug = requestObject;
+        MasterList lastMasterList = this.masterListService.getLastMasterList();
+        lastMasterList.drug.add(newDrug);
+        this.masterListRepository.save(lastMasterList);
+
+    }
+    @GetMapping("/masterList/getLast")
+    public MasterList getLastMasterList(){
+
+        return masterListService.getLastMasterList();
+    }
+
     @GetMapping("/masterList/getAll")
     public List<MasterList> getAllMasterLists(){
 

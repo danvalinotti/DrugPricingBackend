@@ -1,6 +1,8 @@
 package com.galaxe.drugpriceapi.web.nap.masterList;
 
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
+import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
+import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -23,15 +26,26 @@ public class MasterListService {
     MongoEntityRepository mongoEntityRepo;
     @Autowired
     MongoTemplate mongoTemplate;
-    public MasterList add()
-    {
+    @Autowired
+    PriceController priceController;
+    public MasterList add() throws Throwable {
         MasterList m = new MasterList();
-        List<MongoEntity> records = mongoEntityRepo.findAll();
+
         int count = (int)masterListRepository.count();
+        m.setBatchDetails(new BatchDetails(count+1,new Date()));
+
+        m.setTotalBatches(count+1);
+        List<MongoEntity> records = new ArrayList<>();
+        for (MongoEntity entity: getLastMasterList().drug) {
+           RequestObject r = priceController.constructRequestObjectFromMongo(entity);///mongoEntityRepo.findAll();
+            records.add(priceController.getFinalDrug(r));
+        }
+
+
         addDifference(records, getMasterListByBatch(count));
         m.setDrug(records);
-        m.setBatchDetails(new BatchDetails(count+1,new Date()));
-        m.setTotalBatches(count+1);
+
+        System.out.println("MasterList batch over");
         return masterListRepository.save(m);
     }
     private void addDifference(List<MongoEntity> records, MasterList oldMasterList) {
@@ -71,4 +85,7 @@ public class MasterListService {
     }
 
 
+    public MasterList getLastMasterList() {
+        return masterListRepository.findTopByOrderByTotalBatchesDesc().get();
+    }
 }

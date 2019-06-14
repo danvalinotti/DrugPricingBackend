@@ -7,6 +7,7 @@ import com.galaxe.drugpriceapi.web.nap.blinkhealth.Blink;
 import com.galaxe.drugpriceapi.web.nap.masterList.BatchDetails;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterList;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
@@ -69,6 +70,9 @@ public class PriceController {
     @Autowired
     private APIClient3 apiService3;
 
+    @Autowired
+    MasterListTestController masterListTestController;
+
     private int count = 0;
 
     private final String GENERIC = "GENERIC";
@@ -103,13 +107,17 @@ public class PriceController {
                 });
             }
             System.out.println("Tasked ended count :: " + count);
-            masterListService.add();
+            try {
+                masterListService.add();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
         };
         return task;
     }
 
 
-    private RequestObject constructRequestObjectFromMongo(MongoEntity entity) {
+    public RequestObject constructRequestObjectFromMongo(MongoEntity entity) {
 
         RequestObject obj = new RequestObject();
         obj.setDrugName(entity.getName());
@@ -168,11 +176,12 @@ public class PriceController {
             this.times.add(now.withHour(16).withMinute(0).withSecond(0));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
         }
-
+        System.out.println(this.times.size());
         for(int i = 0 ; i<this.times.size();i++){
             ZonedDateTime nextRun = this.times.get(i);
             Duration duration = Duration.between(now, nextRun);
             long initalDelay = duration.getSeconds();
+            System.out.println(initalDelay);
             ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
             scheduler.scheduleAtFixedRate(startBatchJob(),
                     initalDelay,
@@ -202,8 +211,9 @@ public class PriceController {
             flag = false;
             setScheduledFutureJob();
         }
-
-        return getFinalDrug(requestObject);
+        MongoEntity finalDrug = getFinalDrug(requestObject);
+//        this.masterListTestController.addDrugToMasterList(finalDrug);
+        return finalDrug;
     }
 
     //When Track-Listing is clicked
@@ -288,13 +298,15 @@ public class PriceController {
         return drugNAPRepository.findAll();
     }
 
-    private MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
+    public MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
 
         long start = System.currentTimeMillis();
-      //  System.out.println("Start time : " + start);
         Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
+        System.out.println("LATLONG:"+(System.currentTimeMillis()-start));
+        start = System.currentTimeMillis();
         String brandType = getBrandIndicator(requestObject).intern();
-
+        System.out.println("GetBrandInd:"+(System.currentTimeMillis()-start));
+        start = System.currentTimeMillis();
         if (brandType.isEmpty()) {
             brandType = B;
             requestObject.setDrugType(BRAND_WITH_GENERIC);
@@ -302,6 +314,7 @@ public class PriceController {
             requestObject.setDrugType(brandType.equalsIgnoreCase(G) ? GENERIC : BRAND_WITH_GENERIC);
         }
 
+        start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
         CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
@@ -319,7 +332,8 @@ public class PriceController {
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture, blinkFuture).join();
         else
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
-
+        System.out.println("AllProviders:"+(System.currentTimeMillis()-start));
+        start = System.currentTimeMillis();
 
 
        // System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
@@ -333,8 +347,14 @@ public class PriceController {
         /*if (blinkFuture != null)
             blink = apiService3.getBlinkPharmacyPrice(requestObject).get();
 */
+        start = System.currentTimeMillis();
         MongoEntity entity = constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink);
-        return updateDiff(entity, requestObject);
+        System.out.println("ConstructEntity:"+(System.currentTimeMillis()-start));
+        start = System.currentTimeMillis();
+        MongoEntity m  = updateDiff(entity,requestObject);
+        System.out.println("updateDiff:"+(System.currentTimeMillis()-start));
+
+        return m;
 
     }
 
@@ -367,8 +387,11 @@ public class PriceController {
         if (longLatMap.containsKey(zip)) {
             return longLatMap.get(zip);
         } else {
+            long start = System.currentTimeMillis();
             WebClient webClient = WebClient.create("https://api.promaptools.com/service/us/zip-lat-lng/get/?zip=" + zip + "&key=17o8dysaCDrgv1c");
             List<ZipcodeConverter> longLat = webClient.get().exchange().flatMapMany(clientResponse -> clientResponse.bodyToFlux(ZipcodeConverter.class)).collectList().block();
+            System.out.println("LatlongAPI:"+(System.currentTimeMillis()-start));
+
             Map<String, String> map = new HashMap<>();
             map.put("longitude", longLat.get(0).getOutput().get(0).getLongitude());
             map.put("latitude", longLat.get(0).getOutput().get(0).getLatitude());
