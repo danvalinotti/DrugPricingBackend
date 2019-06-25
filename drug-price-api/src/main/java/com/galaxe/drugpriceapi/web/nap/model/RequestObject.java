@@ -14,7 +14,7 @@ public class RequestObject {
 
     private String dosageStrength;
 
-    private int quantity;
+    private Double quantity;
 
     private String drugNDC;
 
@@ -25,4 +25,6 @@ public class RequestObject {
     private String latitude;
 
     private String program;
+
 }
+

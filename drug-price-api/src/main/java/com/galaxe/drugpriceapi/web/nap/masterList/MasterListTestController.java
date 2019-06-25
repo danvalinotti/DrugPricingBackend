@@ -1,5 +1,6 @@
 package com.galaxe.drugpriceapi.web.nap.masterList;
 
+import com.galaxe.drugpriceapi.model.ManualReportRequest;
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
@@ -31,7 +32,8 @@ public class MasterListTestController {
     public MasterList addToMasterList(){
 
         try {
-            return masterListService.add();
+            MasterList result  = masterListService.add();
+            return result;
         } catch (Throwable throwable) {
             throwable.printStackTrace();
             return null;
@@ -64,10 +66,28 @@ public class MasterListTestController {
         this.masterListRepository.save(lastMasterList);
 
     }
+    @PostMapping("/masterList/manualReport")
+    public List<List<String>> createManualReport(@RequestBody ManualReportRequest requestObject) throws Throwable {
+       List<List<String>> result = this.masterListService.createManualReport(requestObject);
+        System.out.println("Result");
+        System.out.println(result);
+       return result;
+
+    }
     @GetMapping("/masterList/getLast")
     public MasterList getLastMasterList(){
 
         return masterListService.getLastMasterList();
+    }
+    @GetMapping("/masterList/getNumberOfDrugs/{drugCount}")
+    public List<MasterList> getReportsWithNumberOfDrugs(@PathVariable int drugCount){
+
+        return masterListService.getReportsWithNumberOfDrugs(drugCount);
+    }
+    @GetMapping("/masterList/getNumberOfDrugs2/{start}/{end}")
+    public List<MasterList> getReportsByNumberOfDrugsRange(@PathVariable int start, @PathVariable int end){
+
+        return masterListService.getReportsByNumberOfDrugsRange(start, end);
     }
 
     @GetMapping("/masterList/getAll")
@@ -85,13 +105,22 @@ public class MasterListTestController {
 
         return masterListService.getMasterListByBatch(batchNum);
     }
-    @GetMapping("/masterList/getBetweenTime")
-    public List<MasterList> getMasterListsBetweenTime(){
+    @GetMapping("/masterList/getBetweenTime/{startDate}/{endDate}")
+    public List<MasterList> getMasterListsBetweenTime(@PathVariable String startDate, @PathVariable String endDate){
+        final Calendar calendar =  Calendar.getInstance();
+        String day = startDate.substring(3,5) ;
+        String month= startDate.substring(0,2);
+        String year =  startDate.substring(6);
+        Integer i =Integer.parseInt(month)-1;
+        calendar.set(Integer.parseInt(year),i,Integer.parseInt(day),0,0);
+        Date start = calendar.getTime();
 
-        final Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DATE, -1);
-        Date start = cal.getTime();
-        Date end = new Date();
+        String day2 = endDate.substring(3,5) ;
+        String month2= endDate.substring(0,2);
+        String year2 =  endDate.substring(6);
+        Integer i2 =Integer.parseInt(month)-1;
+        calendar.set(Integer.parseInt(year2),i2,Integer.parseInt(day2),0,0);
+        Date end = calendar.getTime();
 
         return masterListService.getMasterListsBetweenTime(start,end);
     }

@@ -21,4 +21,10 @@ public interface MasterListRepository extends MongoRepository<MasterList,String>
     List<MasterList> getAllBatches();
 
     Optional<MasterList> findTopByOrderByTotalBatchesDesc();
+
+    @Query(value = "{'drug' :  {$size: ?0}}")
+    List<MasterList> findWithNumberOfDrugs(int drugCount);
+
+    @Query(value = "{'drug' :  {$exists:true}, $where:'this.drug.length>?0'}")
+    List<MasterList> getReportsByNumberOfDrugsRange(int start, int end);
 }

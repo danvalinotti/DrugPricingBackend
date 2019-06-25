@@ -43,12 +43,22 @@ public class BlinkClient {
     public CompletableFuture<Price> getBlinkPrice(RequestObject requestObject) {
         String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
         String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
-        WebClient webClient = WebClient.create(url);
-        String str = webClient
-                .get()
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve().bodyToMono(String.class).block();
+       String str = "";
+        try {
+            WebClient webClient = WebClient.create(url);
+             str = webClient
+                    .get()
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve().bodyToMono(String.class).block();
+        }catch(Exception e){
+            return null;
+        }
         BlinkHealth blinkHealth = gson.fromJson(str, BlinkHealth.class);
+
+        if(blinkHealth.getResult().getDrug().getFormatted_name().contains("Generic")){
+            return null;
+        }
+
         if (!CollectionUtils.isEmpty(blinkHealth.getResult().getDrug().getForms())) {
             if (!CollectionUtils.isEmpty(blinkHealth.getResult().getDrug().getForms().get(0).getDosages())) {
                 for (Dosages dosage : blinkHealth.getResult().getDrug().getForms().get(0).getDosages()) {
