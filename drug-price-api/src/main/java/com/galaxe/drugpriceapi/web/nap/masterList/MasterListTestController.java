@@ -4,8 +4,12 @@ import com.galaxe.drugpriceapi.model.ManualReportRequest;
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterController;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.ReportRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
+import com.mongodb.Mongo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,21 +31,54 @@ public class MasterListTestController {
 
     @Autowired
     PriceController priceController;
+    @Autowired
+    DrugMasterController drugMasterController;
+    @Autowired
+    ReportRepository reportRepository;
 
     @GetMapping("/masterList/addToMasterList")
     public MasterList addToMasterList(){
+        int here = 0;
+        try{
+            if(reportRepository.count() != 0){
+                here= 1;
+                drugMasterController.generateReport();
+            }else{
+                here= 1;
+                try {
+                    masterListService.add();
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
+                }
 
-        try {
-            MasterList result  = masterListService.add();
-            return result;
-        } catch (Throwable throwable) {
-            throwable.printStackTrace();
-            return null;
+            }
+        }catch (Exception e ){
+            if(here != 1){
+                try {
+                    masterListService.add();
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
+                }
+            }
         }
+
+//        try {
+//            MasterList result  = masterListService.add();
+//            return result;
+//        } catch (Throwable throwable) {
+//            throwable.printStackTrace();
+//            return null;
+//        }
+        return null;
     }
-
-
-
+//    @GetMapping("/masterList/getDrugFromMasterList")
+//    public List<Price> getDrugFromList(){
+//       MongoEntity mongoEntity = getLastMasterList().getDrug().get(0);
+//        for (Price price :drugMasterController.mongoEntityToPrices(mongoEntity)) {
+//            drugMasterController.addPrice(price);
+//        }
+//        return drugMasterController.getAllPrices();
+//    }
 
     @GetMapping("/masterList/getByDate/{date}")
     public List<MasterList> addToMasterList(@PathVariable String date){
@@ -66,6 +103,7 @@ public class MasterListTestController {
         this.masterListRepository.save(lastMasterList);
 
     }
+
     @PostMapping("/masterList/manualReport")
     public List<List<String>> createManualReport(@RequestBody ManualReportRequest requestObject) throws Throwable {
        List<List<String>> result = this.masterListService.createManualReport(requestObject);

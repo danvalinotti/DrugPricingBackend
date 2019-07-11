@@ -102,8 +102,15 @@ public class APIClient2 {
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<List<DrugNAP2>> constructUsPharmacy(RequestObject requestObject) {
 
+        String drugType = requestObject.getDrugType();
+        if(drugType.equals("B")){
+            drugType = "BRAND_WITH_GENERIC";
+        }else if (drugType.equals("G")){
+            drugType = "GENERIC";
+        }
+
         WebClient webClient = WebClient.create("https://api.uspharmacycard.com/drug/price/147/020982/" + requestObject.getZipcode()
-                + "/" + requestObject.getDrugNDC() + "/" + requestObject.getDrugName() + "/" + requestObject.getDrugType() + "/" + requestObject.getQuantity() + "/10");
+                + "/" + requestObject.getDrugNDC() + "/" + requestObject.getDrugName() + "/" + drugType + "/" + requestObject.getQuantity() + "/10");
 
         List<DrugNAP2> usPharmacies = webClient
                 .get()

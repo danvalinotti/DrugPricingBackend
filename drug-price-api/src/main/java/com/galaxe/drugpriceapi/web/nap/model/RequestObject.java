@@ -26,5 +26,6 @@ public class RequestObject {
 
     private String program;
 
+    private String token;
 }
 

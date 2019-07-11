@@ -19,7 +19,9 @@ public class APIClient3 {
 
     @Async
     public CompletableFuture<Blink> getBlinkPharmacyPrice(RequestObject requestObject) throws ExecutionException, InterruptedException {
-        CompletableFuture<Results> pharmacy = blinkClient.getBlinkPharmacy(requestObject);
+       try {
+           CompletableFuture<Results> pharmacy = blinkClient.getBlinkPharmacy(requestObject);
+
         CompletableFuture<Price> price = blinkClient.getBlinkPrice(requestObject);
 
         //Wait until they are all done
@@ -31,7 +33,9 @@ public class APIClient3 {
             blink.setResults(pharmacy.get());
             return CompletableFuture.completedFuture(blink);
         }
-
+       }catch(Exception e ){
+           return CompletableFuture.completedFuture(new Blink());
+       }
         return CompletableFuture.completedFuture(new Blink());
     }
 }

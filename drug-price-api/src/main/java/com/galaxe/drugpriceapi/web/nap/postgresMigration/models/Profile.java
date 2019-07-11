@@ -1,0 +1,30 @@
+package com.galaxe.drugpriceapi.web.nap.postgresMigration.models;
+
+import lombok.*;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+
+import javax.persistence.*;
+import java.util.List;
+
+@Entity
+@Table
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Profile {
+    @Id
+    @GeneratedValue
+    int id;
+    @Column
+    String name;
+    @Column
+    String username;
+    @Column
+    String password;
+    @Column
+    String role;
+
+
+
+}

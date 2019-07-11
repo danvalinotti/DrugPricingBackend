@@ -9,10 +9,13 @@ import com.galaxe.drugpriceapi.web.nap.controller.APIClient3;
 import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterController;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Report;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
+import lombok.AllArgsConstructor;
 import org.decimal4j.util.DoubleRounder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Example;
@@ -59,31 +62,39 @@ public class MasterListService {
 
     private final String NA = "N/A";
 
+    @Autowired
+    DrugMasterController drugMasterController;
+
     private final String ZERO = "0.0";
     public MasterList add() throws Throwable {
         MasterList m = new MasterList();
 
 
         List<MongoEntity> records = new ArrayList<>();
+        Report report = drugMasterController.createFirstReport();
 
         for (MongoEntity entity: getLastMasterList().drug) {//For each of the drugs in the Master List
 
            RequestObject r = priceController.constructRequestObjectFromMongo(entity);///mongoEntityRepo.findAll();
-            MongoEntity finalDrug = priceController.getFinalDrug(r);
+            System.out.println(r.getDrugName());
+            drugMasterController.addDrugToReport(r, report);
+            //MongoEntity finalDrug = priceController.getFinalDrug(r);
 
-            records.add(finalDrug);
+//            records.add(finalDrug);
 
         }
+//        drugMasterController.generateReport();
 
+//
+//        addDifference(records, getMasterListByBatch(count)); //eq 116.7
+//        m.setDrug(records);
+//        int count = (int)masterListRepository.count();
+//        m.setBatchDetails(new BatchDetails(count+1,new Date()));
+//
+//        m.setTotalBatches(count+1);
+//        System.out.println("MasterList batch over");
+        return m;
 
-        addDifference(records, getMasterListByBatch(count)); //eq 116.7
-        m.setDrug(records);
-        int count = (int)masterListRepository.count();
-        m.setBatchDetails(new BatchDetails(count+1,new Date()));
-
-        m.setTotalBatches(count+1);
-        System.out.println("MasterList batch over");
-        return masterListRepository.save(m);
     }
     private void addDifference(List<MongoEntity> records, MasterList oldMasterList) {
         for (MongoEntity record:records) {
@@ -105,7 +116,6 @@ public class MasterListService {
 
                 }
             }catch(Exception e ){
-
             }
 
 

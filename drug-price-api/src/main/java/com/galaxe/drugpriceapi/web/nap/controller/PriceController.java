@@ -10,6 +10,7 @@ import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.DrugBrandInfo;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
@@ -97,15 +98,15 @@ public class PriceController {
             count++;
             System.out.println("Task Run count :: " + count);
             List<MongoEntity> entities = mongoEntityRepo.findAll();
-            if (!CollectionUtils.isEmpty(entities)) {
-                entities.forEach(entity -> {   //For each drug in dashboard
-                    try {//Saves updated drug to dashboard
-                        addDrugToDashBoard(constructRequestObjectFromMongo(entity));
-                    } catch (Throwable t) {
-                        System.out.println(t.getCause());
-                    }
-                });
-            }
+//            if (!CollectionUtils.isEmpty(entities)) {
+//                entities.forEach(entity -> {   //For each drug in dashboard
+//                    try {//Saves updated drug to dashboard
+//                     //   addDrugToDashBoard(constructRequestObjectFromMongo(entity));
+//                    } catch (Throwable t) {
+//                        System.out.println(t.getCause());
+//                    }
+//                });
+//            }
 
             try {
                 masterListService.add();
@@ -225,7 +226,7 @@ public class PriceController {
         }
 
         MongoEntity latestAPIResponse = getFinalDrug(requestObject);
-       // masterListTestController.addDrugToMasterList(latestAPIResponse);
+        // masterListTestController.addDrugToMasterList(latestAPIResponse);
         mongoEntityRepo.save(latestAPIResponse);
     }
 
@@ -362,6 +363,7 @@ public class PriceController {
 
     }
 
+
     private String getDrugInfoFromInsideRx(WebClient webClient) {
         return webClient
                 .get()
@@ -429,7 +431,7 @@ public class PriceController {
         return name;
     }
 
-    private MongoEntity constructEntity
+    public MongoEntity constructEntity
             (List<DrugNAP2> usCardProgramResult, List<InsideRx> insideRxProgramResult,
              RequestObject reqObject, List<Drugs> wellRxProgramResult, LocatedDrug medImpactLocatedDrug,
              PharmacyPricings singlecarePrice, Blink blink) {
@@ -578,7 +580,7 @@ public class PriceController {
     }
 
 
-    private MongoEntity updateDiff(MongoEntity currentObject, RequestObject requestObject) {
+    public MongoEntity updateDiff(MongoEntity currentObject, RequestObject requestObject) {
 
         Optional<MongoEntity> mongoObjects = mongoEntityRepo.findByNdcAndDosageStrengthAndQuantityAndZipcode(requestObject.getDrugNDC(),
                 requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim(), String.valueOf(requestObject.getQuantity()), requestObject.getZipcode());
