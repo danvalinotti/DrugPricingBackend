@@ -10,6 +10,7 @@ import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugReportController;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.DrugBrandInfo;
@@ -76,6 +77,8 @@ public class PriceController {
     @Autowired
     MasterListTestController masterListTestController;
 
+    @Autowired
+    DrugReportController drugReportController;
     private int count = 0;
 
     private final String GENERIC = "GENERIC";
@@ -97,7 +100,7 @@ public class PriceController {
         Runnable task = () -> {
             count++;
             System.out.println("Task Run count :: " + count);
-            List<MongoEntity> entities = mongoEntityRepo.findAll();
+           // List<MongoEntity> entities = mongoEntityRepo.findAll();
 //            if (!CollectionUtils.isEmpty(entities)) {
 //                entities.forEach(entity -> {   //For each drug in dashboard
 //                    try {//Saves updated drug to dashboard
@@ -109,7 +112,8 @@ public class PriceController {
 //            }
 
             try {
-                masterListService.add();
+                drugReportController.generateReport();
+              //  masterListService.add();
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
             }
@@ -141,37 +145,37 @@ public class PriceController {
 
         if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0).plusDays(1));
         }else if(now.compareTo(now.withHour(16).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
         }else if(now.compareTo(now.withHour(12).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
-        }else if(now.compareTo(now.withHour(9).withMinute(53).withSecond(0)) > 0){
+        }else if(now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0).plusDays(1));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
         }else if(now.compareTo(now.withHour(5).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
         }else{
             this.times.add(now.withHour(5).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(9).withMinute(53).withSecond(0));
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
             this.times.add(now.withHour(12).withMinute(0).withSecond(0));
             this.times.add(now.withHour(16).withMinute(0).withSecond(0));
             this.times.add(now.withHour(20).withMinute(0).withSecond(0));
@@ -344,12 +348,18 @@ public class PriceController {
         List<InsideRx> insideRxPrices = inside.get();
         List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
         List<Drugs> wellRx = wellRxFuture.get();
+
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
         Blink blink = null;
         if (blinkFuture != null)
             blink = apiService3.getBlinkPharmacyPrice(requestObject).get();
+        System.out.println("WELLRX GSN");
+        try {
+            System.out.println(wellRx.get(0).getGSN());
+        }catch(Exception ex){
 
+        }
         start = System.currentTimeMillis();
         MongoEntity entity = constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink);//BADDDDDD
         MongoEntity newEntity = new MongoEntity();

@@ -5,6 +5,7 @@ import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterController;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugReportController;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.ReportRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
@@ -36,13 +37,16 @@ public class MasterListTestController {
     @Autowired
     ReportRepository reportRepository;
 
+    @Autowired
+    DrugReportController drugReportController;
+
     @GetMapping("/masterList/addToMasterList")
     public MasterList addToMasterList(){
         int here = 0;
         try{
             if(reportRepository.count() != 0){
                 here= 1;
-                drugMasterController.generateReport();
+                drugReportController.generateReport();
             }else{
                 here= 1;
                 try {

@@ -98,6 +98,7 @@ public class APIClient {
 
             String url = constructMedImpactUrl(requestObject, longLat, Brand_indicator).intern();
             MedImpact medImpact = getMedImpactProgramResult(url);
+
             if (medImpact != null) {
                 if (!CollectionUtils.isEmpty(medImpact.getStrengths().getLocatedDrugStrength())) {
                     drugStrengths = medImpact.getStrengths().getLocatedDrugStrength();
@@ -118,7 +119,15 @@ public class APIClient {
                 }
             }
         }
+        if(GSN.isEmpty()) {
 
+            CompletableFuture<LocatedDrug> result = CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, requestObject.getGSN(), Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0));
+            if(result.join() == null || result.join().getPricing().getPrice().equals("")){
+
+            }else{
+                return result;
+            }
+        }
         return !GSN.isEmpty()
                 ? CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, GSN, Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0))
                 : CompletableFuture.completedFuture(medImpactDrug);
@@ -157,7 +166,7 @@ public class APIClient {
 
     private String constructMedImpactUrl2(RequestObject requestObject, Map<String, String> latLong, String gsn, String Brand_indicator) {
 
-        return "https://rxsavings.medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view" +
+        String s =  "https://rxsavings.medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view" +
                 "&p_p_cacheability=cacheLevelPage&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_cmd=get_drug_detail" +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_quantity=" + requestObject.getQuantity() +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_gsn=" + gsn +
@@ -165,6 +174,7 @@ public class APIClient {
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lat=" + latLong.get("latitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lng=" + latLong.get("longitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";
+        return s ;
     }
 
     @Async("threadPoolTaskExecutor")

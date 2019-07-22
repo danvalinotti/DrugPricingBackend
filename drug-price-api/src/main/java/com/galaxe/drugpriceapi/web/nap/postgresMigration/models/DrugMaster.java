@@ -29,6 +29,18 @@ public class  DrugMaster {
     String drugType;
     @Column
     String dosageUOM;
+    @Column
+    boolean reportFlag;
+    @Column
+    String gsn;
+
+//    public void setReportFlag(Boolean reportFlag){
+//        if(reportFlag== null){
+//            this.reportFlag = true;
+//        }else{
+//            this.reportFlag = reportFlag;
+//        }
+//    }
 
 
 

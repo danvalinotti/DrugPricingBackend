@@ -27,5 +27,10 @@ public class RequestObject {
     private String program;
 
     private String token;
+
+    private Boolean reportFlag;
+
+    private String GSN;
+
 }
 

@@ -15,4 +15,6 @@ public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> 
     @Query(value= "SELECT * FROM drug_master "+
             "WHERE drug_master.ndc = ?1 AND drug_master.quantity = ?2",nativeQuery = true)
     List<DrugMaster> findAllByFields(String ndc, double quantity);
+
+    List<DrugMaster> findByReportFlag(boolean b);
 }

@@ -10,6 +10,7 @@ import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterController;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugReportController;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Report;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
@@ -40,10 +41,13 @@ public class MasterListService {
     @Autowired
     PriceController priceController;
     @Autowired
-    private APIClient apiService;
+    APIClient apiService;
 
     @Autowired
-    private APIClient2 apiService2;
+    APIClient2 apiService2;
+
+    @Autowired
+    DrugReportController drugReportController;
 
     @Autowired
     private APIClient3 apiService3;
@@ -71,13 +75,13 @@ public class MasterListService {
 
 
         List<MongoEntity> records = new ArrayList<>();
-        Report report = drugMasterController.createFirstReport();
+        Report report = drugReportController.createFirstReport();
 
         for (MongoEntity entity: getLastMasterList().drug) {//For each of the drugs in the Master List
 
            RequestObject r = priceController.constructRequestObjectFromMongo(entity);///mongoEntityRepo.findAll();
             System.out.println(r.getDrugName());
-            drugMasterController.addDrugToReport(r, report);
+            drugReportController.addDrugToReport(r, report);
             //MongoEntity finalDrug = priceController.getFinalDrug(r);
 
 //            records.add(finalDrug);

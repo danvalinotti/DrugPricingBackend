@@ -15,4 +15,6 @@ public interface ReportDrugsRepository extends JpaRepository<Report_Drugs,Intege
 
     @Query(value = "SELECT price_id from report_drugs WHERE id = ?1", nativeQuery = true)
     List<Integer> findPriceIdByReportId(int reportId);
+
+
 }
