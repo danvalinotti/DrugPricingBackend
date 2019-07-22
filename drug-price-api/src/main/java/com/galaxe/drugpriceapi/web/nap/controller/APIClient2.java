@@ -269,7 +269,7 @@ public class APIClient2 {
     }
 
     private String getWellRxDrugSpecificOutput(WellRxSpecifDrugPost wellRxSpecifDrugPost) {
-        WebClient webClient = WebClient.create("https://www.wellrx.com/prescriptions/get-drugs");
+        WebClient webClient = WebClient.create("https://www.wellrx.com/prescriptions/get-specific-drug");
         try{
             System.out.println("SPECIFIC DRUG");
             System.out.println(wellRxSpecifDrugPost.getGSN());

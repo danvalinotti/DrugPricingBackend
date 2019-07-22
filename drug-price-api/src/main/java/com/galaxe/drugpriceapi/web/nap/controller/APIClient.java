@@ -119,14 +119,18 @@ public class APIClient {
                 }
             }
         }
-        if(GSN.isEmpty()) {
+        try {
+            if (GSN.isEmpty()) {
 
-            CompletableFuture<LocatedDrug> result = CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, requestObject.getGSN(), Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0));
-            if(result.join() == null || result.join().getPricing().getPrice().equals("")){
+                CompletableFuture<LocatedDrug> result = CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, requestObject.getGSN(), Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0));
+                if (result.join() == null || result.join().getPricing().getPrice().equals("")) {
 
-            }else{
-                return result;
+                } else {
+                    return result;
+                }
             }
+        }catch(Exception ex ){
+
         }
         return !GSN.isEmpty()
                 ? CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, GSN, Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0))
