@@ -78,45 +78,49 @@ public class DrugDashboardController {
         List<MongoEntity> mongoEntities = new ArrayList<>();
 
         for (String s : drugList) {
-            DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(s)).get();
-            drugMasters.add(drugMaster);
-            MongoEntity mongoEntity = new MongoEntity();
+            try {
+                DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(s)).get();
+                drugMasters.add(drugMaster);
+                MongoEntity mongoEntity = new MongoEntity();
 
-            mongoEntity.setQuantity(drugMaster.getQuantity() + "");
-            //mongoEntity.setPharmacyName("");
-            mongoEntity.setNdc(drugMaster.getNdc());
-            mongoEntity.setDrugType(drugMaster.getDrugType());
-            mongoEntity.setDosageStrength(drugMaster.getDosageStrength());
-            mongoEntity.setName(drugMaster.getName());
-            mongoEntity.setZipcode(drugMaster.getZipCode());
+                mongoEntity.setQuantity(drugMaster.getQuantity() + "");
+                //mongoEntity.setPharmacyName("");
+                mongoEntity.setNdc(drugMaster.getNdc());
+                mongoEntity.setDrugType(drugMaster.getDrugType());
+                mongoEntity.setDosageStrength(drugMaster.getDosageStrength());
+                mongoEntity.setName(drugMaster.getName());
+                mongoEntity.setZipcode(drugMaster.getZipCode());
 
-            List<Price> prices = priceRepository.findByDrugDetailsId(drugMaster.getId());
-            List<Program> programs = new ArrayList<>();
-            mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
-            mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
-            Program[] programArr = new Program[6];
+                List<Price> prices = priceRepository.findByDrugDetailsId(drugMaster.getId());
+                List<Program> programs = new ArrayList<>();
+                mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
+                mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
+                Program[] programArr = new Program[6];
 
-            for (int i = 0; i < programArr.length; i++) {
-                Program program = new Program();
-                program.setProgram(i + "");
-                program.setPrice("N/A");
-                program.setPharmacy("N/A");
-                //programs.add(program);
-                programArr[i] = program;
+                for (int i = 0; i < programArr.length; i++) {
+                    Program program = new Program();
+                    program.setProgram(i + "");
+                    program.setPrice("N/A");
+                    program.setPharmacy("N/A");
+                    //programs.add(program);
+                    programArr[i] = program;
+                }
+                for (Price p : prices) {
+                    Program program = new Program();
+                    program.setProgram(p.getProgramId() + "");
+                    program.setPrice(p.getPrice() + "");
+                    program.setPharmacy(p.getPharmacy());
+                    //programs.add(program);
+                    programArr[p.getProgramId()] = program;
+                }
+                programs = Arrays.asList(programArr);
+
+
+                mongoEntity.setPrograms(programs);
+                mongoEntities.add(mongoEntity);
+            }catch(Exception ex){
+
             }
-            for (Price p : prices) {
-                Program program = new Program();
-                program.setProgram(p.getProgramId() + "");
-                program.setPrice(p.getPrice() + "");
-                program.setPharmacy(p.getPharmacy());
-                //programs.add(program);
-                programArr[p.getProgramId()] = program;
-            }
-            programs = Arrays.asList(programArr);
-
-
-            mongoEntity.setPrograms(programs);
-            mongoEntities.add(mongoEntity);
         }
 
         return mongoEntities;
@@ -138,6 +142,7 @@ public class DrugDashboardController {
             drugMaster1.setQuantity(requestObject.getQuantity());
             String brandType = priceController.getBrandIndicator(requestObject).intern();
             drugMaster1.setDrugType(brandType);
+            System.out.println("LINE 145");
             drugMaster = drugMasterRepository.save(drugMaster1);
         }
 

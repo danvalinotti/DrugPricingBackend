@@ -111,8 +111,7 @@ public class MasterListTestController {
     @PostMapping("/masterList/manualReport")
     public List<List<String>> createManualReport(@RequestBody ManualReportRequest requestObject) throws Throwable {
        List<List<String>> result = this.masterListService.createManualReport(requestObject);
-        System.out.println("Result");
-        System.out.println(result);
+
        return result;
 
     }

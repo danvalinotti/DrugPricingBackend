@@ -24,6 +24,10 @@ public interface PriceRepository extends JpaRepository<Price,Integer> {
     @Query(value= "SELECT * FROM price WHERE drug_details_id = ?1 ORDER BY id DESC"+
             " LIMIT 6",nativeQuery = true)
     List<Price> findByRecentDrugDetails(int id);
+
+    @Query(value= "SELECT * FROM price WHERE drug_details_id = ?1 AND program_id= ?2 ORDER BY id DESC"+
+            " LIMIT 2",nativeQuery = true)
+    List<Price> findLastPrice(int id,int programId);
 //
 //    List<Price> findAllByDrugmaster(DrugMaster drug);
 

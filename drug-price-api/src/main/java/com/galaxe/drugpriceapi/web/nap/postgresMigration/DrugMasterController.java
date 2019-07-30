@@ -68,16 +68,31 @@ public class DrugMasterController {
     private List<DrugMaster> getDrugMasters() {
         return drugMasterRepository.findAll();
     }
+    @GetMapping("/remove/duplicates")
+    public void removeDuplicates() {
+      List<DrugMaster> allDrugs = drugMasterRepository.findAll();
+        for (DrugMaster drug: allDrugs) {
+            if(drugMasterRepository.findAllByFields(drug.getNdc(),drug.getQuantity()).size()>1){
+                drugMasterRepository.delete(drug);
+            }
+
+        }
+    }
+    @GetMapping("/set/all/true")
+    public void drugsAllTrue() {
+        drugMasterRepository.setAllTrue();
+    }
+
 
 
     public PricesAndMaster getDetails(RequestObject requestObject, DrugMaster drugMaster) throws Throwable {
 
         long start = System.currentTimeMillis();
         Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
-        System.out.println("LATLONG:" + (System.currentTimeMillis() - start));
+
         start = System.currentTimeMillis();
         String brandType = priceController.getBrandIndicator(requestObject).intern();
-        System.out.println("GetBrandInd:" + (System.currentTimeMillis() - start));
+
         start = System.currentTimeMillis();
         if (brandType.isEmpty()) {
             brandType = "B";
@@ -122,9 +137,10 @@ public class DrugMasterController {
         PricesAndMaster pricesAndMaster = new PricesAndMaster();
         List<Price> prices = new ArrayList<>();
 
-        InsideRx insideRx = insideRxPrices.get(0);
+
         Price p = new Price();
         try {
+            InsideRx insideRx = insideRxPrices.get(0);
             p.setPrice(Double.parseDouble(insideRx.getPrices().get(0).getPrice()));
             p.setPharmacy(insideRx.getPrices().get(0).getPharmacy().getName());
             p.setDrugDetailsId(drugMaster.getId());
@@ -132,9 +148,10 @@ public class DrugMasterController {
         } catch (Exception e) {
             p = null;
         }
-        DrugNAP2 usPharm = usPharmacyPrices.get(0);
+
         Price p1 = new Price();
         try {
+            DrugNAP2 usPharm = usPharmacyPrices.get(0);
             p1.setPrice(Double.parseDouble(usPharm.getPriceList().get(0).getDiscountPrice()));
             p1.setPharmacy(usPharm.getPriceList().get(0).getPharmacy().getPharmacyName());
             p1.setProgramId(1);

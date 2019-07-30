@@ -2,6 +2,7 @@ package com.galaxe.drugpriceapi.web.nap.controller;
 
 import com.galaxe.drugpriceapi.web.nap.blinkhealth.*;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugRequest;
 import com.google.gson.Gson;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
@@ -44,6 +45,7 @@ public class BlinkClient {
         String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
         String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
        String str = "";
+
         try {
             WebClient webClient = WebClient.create(url);
              str = webClient

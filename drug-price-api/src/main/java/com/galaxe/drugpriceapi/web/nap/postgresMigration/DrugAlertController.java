@@ -3,6 +3,7 @@ package com.galaxe.drugpriceapi.web.nap.postgresMigration;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Alert;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.AlertType;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Profile;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.StringSender;
 import com.galaxe.drugpriceapi.web.nap.wellRx.WellRx;
@@ -26,6 +27,9 @@ public class DrugAlertController {
     @Autowired
     AlertRepository alertRepository;
 
+    @Autowired
+    AlertTypeRepository alertTypeRepository;
+
     @GetMapping("/get/alerts/all")
     public List<Alert> getAll(){
        return this.alertRepository.findAll();
@@ -38,18 +42,15 @@ public class DrugAlertController {
         alert.setTime(new Date());
         return this.alertRepository.save(alert);
     }
+    @PostMapping("/create/alert/type")
+    public AlertType createAlertType(@RequestBody  AlertType alertType){
+        alertType.setActive(true);
+        return this.alertTypeRepository.save(alertType);
+    }
 
     @PostMapping("/post")
     public WellRxGSNSearch testPost(@RequestBody WellRxGSNSearch w){
-//        WellRxGSNSearch wellRxGSNSearch = new WellRxGSNSearch();
-//        wellRxGSNSearch.setGSN("006582");
-//        wellRxGSNSearch.setLat("40.5827122");
-//        wellRxGSNSearch.setLng("-74.2707509");
-//        wellRxGSNSearch.setNumdrugs("1");
-//        wellRxGSNSearch.setQuantity("1");
-//        wellRxGSNSearch.setBgIndicator("B");
-//        wellRxGSNSearch.setbReference("HUMATROPE");
-//        wellRxGSNSearch.setNcpdps("null");
+
         return w;
     }
 

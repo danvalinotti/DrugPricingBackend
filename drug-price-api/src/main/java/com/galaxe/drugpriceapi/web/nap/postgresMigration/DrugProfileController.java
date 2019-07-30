@@ -41,20 +41,30 @@ public class DrugProfileController {
 
     @PostMapping(value = "/admin/create/user")
     public Profile adminCreateUser(@RequestBody Profile profile)  {
-        if(profileRepository.findByUsername(profile.getUsername()).size() != 0){
+//        if(profileRepository.findByUsername(profile.getUsername()).size() != 0){
             String newPassword = BCrypt.hashpw("Galaxy123",BCrypt.gensalt());
             profile.setPassword(newPassword);
             profile.setRole("created"+profile.getRole());
             return profileRepository.save(profile);
-        }else{
-            profile.setUsername("Exists");
-            return profile;
-        }
+//        }else{
+//            profile.setUsername("Exists");
+//            return profile;
+//        }
 
     }
     @GetMapping(value = "/admin/get/users")
     public List<Profile> adminGetUsers()  {
         return profileRepository.findAll();
+    }
+
+    @GetMapping(value = "/create/admin")
+    public Profile createAdmin()  {
+       Profile profile = new Profile();
+       profile.setUsername("admin@galaxe.com");
+       profile.setPassword("password");
+       profile.setRole("admin");
+       profile.setName("Admin");
+       return signUp(profile);
     }
     @PostMapping("/signUp")
     public Profile signUp(@RequestBody Profile profile){

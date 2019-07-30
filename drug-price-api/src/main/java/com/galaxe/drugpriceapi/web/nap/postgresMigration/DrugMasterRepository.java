@@ -17,4 +17,18 @@ public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> 
     List<DrugMaster> findAllByFields(String ndc, double quantity);
 
     List<DrugMaster> findByReportFlag(boolean b);
+
+    @Query(value = "WITH CTE AS( " +
+            " SELECT ndc, quantity, dosage_strength, name, " +
+            "  rn2 = ROW_NUMBER()OVER(PARTITION BY ndc, quantity, dosage_strength, name ORDER BY name) " +
+            " FROM drug_master ) "  +
+            "DELETE FROM CTE WHERE rn2 > 1"
+            , nativeQuery = true)
+    void removeDuplicates();
+
+    @Query(value = "UPDATE drug_master SET report_flag = true;"
+            , nativeQuery = true)
+    void setAllTrue();
+
+    List<DrugMaster> findByReportFlagOrderById(boolean b);
 }

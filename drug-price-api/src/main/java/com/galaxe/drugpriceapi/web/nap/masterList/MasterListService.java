@@ -80,8 +80,9 @@ public class MasterListService {
         for (MongoEntity entity: getLastMasterList().drug) {//For each of the drugs in the Master List
 
            RequestObject r = priceController.constructRequestObjectFromMongo(entity);///mongoEntityRepo.findAll();
-            System.out.println(r.getDrugName());
+
             drugReportController.addDrugToReport(r, report);
+
             //MongoEntity finalDrug = priceController.getFinalDrug(r);
 
 //            records.add(finalDrug);
@@ -251,13 +252,13 @@ public class MasterListService {
     }
 
     public List<String> getFinalDrug(RequestObject requestObject,ManualReportRequest reportRequest) throws Throwable {
-        System.out.println(requestObject.getDrugName());
+//        System.out.println(requestObject.getDrugName());
         long start = System.currentTimeMillis();
         Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
-        System.out.println("LATLONG:"+(System.currentTimeMillis()-start));
+
         start = System.currentTimeMillis();
         String brandType = priceController.getBrandIndicator(requestObject).intern();
-        System.out.println("GetBrandInd:"+(System.currentTimeMillis()-start));
+
         start = System.currentTimeMillis();
         if (brandType.isEmpty()) {
             brandType = B;
@@ -320,7 +321,6 @@ public class MasterListService {
         //Wait until they are all done
 
         //CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
-        System.out.println("AllProviders:"+(System.currentTimeMillis()-start));
         start = System.currentTimeMillis();
 
 
@@ -350,7 +350,7 @@ public class MasterListService {
 */
         start = System.currentTimeMillis();
         List<String> entity = constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink, reportRequest);
-        System.out.println(entity);
+
 
         return entity;
 
@@ -416,15 +416,13 @@ public class MasterListService {
                 programs.add("0.00");
             }
         }
-        System.out.println("Added Programs");
+
         recommended = String.valueOf(DoubleRounder.round(recommendedPriceSet.first(), 2));
-        System.out.println("Got Recommended");
         for (Double p : recommendedPriceSet) {
             sum += p;
         }
 
         String average = (String.valueOf(DoubleRounder.round(sum / recommendedPriceSet.size(), 2)));
-        System.out.println("Got Average");
 
         if(reportRequest.getDrugDetails().contains("Recommended Price")){
             programs.add(recommended);

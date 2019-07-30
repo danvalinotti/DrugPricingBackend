@@ -6,8 +6,13 @@ import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrugStrength;
 import com.galaxe.drugpriceapi.web.nap.medimpact.MedImpact;
 import com.galaxe.drugpriceapi.web.nap.model.PostObject;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugRequestRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugRequest;
 import com.galaxe.drugpriceapi.web.nap.singlecare.*;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -15,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
+
+import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -40,6 +47,11 @@ public class APIClient {
 
     private Comparator<Prices> constructSigleCareComparator = null;
 
+    @Autowired
+    DrugRequestRepository drugRequestRepository;
+    @Autowired
+    DrugMasterRepository drugMasterRepository;
+
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<PharmacyPricings> getSinglecarePrices(@RequestBody RequestObject requestObject) {
 
@@ -53,6 +65,7 @@ public class APIClient {
                 .retrieve().bodyToMono(String.class).block();
 
         Singlecare singlecare = gson.fromJson(str, Singlecare.class);
+
 
         if (singlecare.getValue() != null) {
             if (!CollectionUtils.isEmpty(singlecare.getValue().getPharmacyPricings())) {
@@ -79,6 +92,21 @@ public class APIClient {
         Value.setTenantId(0);
         Value.setNABP("");
         object.setValue(Value);
+
+        try {
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).size() == 0) {
+                DrugRequest drugRequest = new DrugRequest();
+                drugRequest.setProgramId(4);
+                drugRequest.setDrugId(drugId);
+                drugRequest.setNdc(requestObject.getDrugNDC());
+                drugRequest.setQuantity(String.valueOf(requestObject.getQuantity()));
+                drugRequest.setZipcode(requestObject.getZipcode());
+                drugRequestRepository.save(drugRequest);
+            }
+        } catch (Exception ex) {
+
+        }
         return object;
     }
 
@@ -86,33 +114,43 @@ public class APIClient {
     public CompletableFuture<LocatedDrug> getMedImpact(@RequestBody RequestObject requestObject, Map<String, String> longLat, String Brand_indicator) {
 
         List<LocatedDrugStrength> drugStrengths = null;
+
         String GSN = "";
         String requestDrug = requestObject.getDrugName().toUpperCase().intern();
-        String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
+        String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|%|\\s]", "").trim().intern();
+        requestObject.setGSN(drugMasterRepository.findAllByFields(requestObject.getDrugNDC(),requestObject.getQuantity()).get(0).getGsn());
+        System.out.println("GSN");
+        System.out.println(requestObject.getGSN());
+        if (requestObject.getGSN() != null && !requestObject.getGSN().equals("null")) {
+            GSN = requestObject.getGSN();
+            System.out.println("GSN:");
+            System.out.println(GSN);
+            MedImpact result = getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, GSN, Brand_indicator).intern());
+            if(result == null){
+                System.out.println("RESULT NULL");
+            }else{
+                System.out.println("FOUND RESULT");
+                return CompletableFuture.completedFuture(result.getDrugs().getLocatedDrug().get(0));
 
-        if (medImpactGSNMap.containsKey(requestDrug)) {
-
-            drugStrengths = medImpactGSNMap.get(requestDrug);
-
-        } else {
-
-            String url = constructMedImpactUrl(requestObject, longLat, Brand_indicator).intern();
-            MedImpact medImpact = getMedImpactProgramResult(url);
-
-            if (medImpact != null) {
-                if (!CollectionUtils.isEmpty(medImpact.getStrengths().getLocatedDrugStrength())) {
-                    drugStrengths = medImpact.getStrengths().getLocatedDrugStrength();
-                    medImpactGSNMap.put(requestDrug, drugStrengths);
-                } else {
-                    return CompletableFuture.completedFuture(medImpactDrug);
-                }
             }
+        }
 
+
+        String url = constructMedImpactUrl(requestObject, longLat, Brand_indicator).intern();
+        MedImpact medImpact = getMedImpactProgramResult(url);
+
+        if (medImpact != null) {
+            if (!CollectionUtils.isEmpty(medImpact.getStrengths().getLocatedDrugStrength())) {
+                drugStrengths = medImpact.getStrengths().getLocatedDrugStrength();
+                medImpactGSNMap.put(requestDrug, drugStrengths);
+            } else {
+                return CompletableFuture.completedFuture(medImpactDrug);
+            }
         }
 
         if (!CollectionUtils.isEmpty(drugStrengths)) {
             for (LocatedDrugStrength strength : drugStrengths) {
-                String medImpactStrength = strength.getStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
+                String medImpactStrength = strength.getStrength().toUpperCase().replaceAll("[A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|%|\\s]", "").trim().intern();
                 if (requestedDosage.equalsIgnoreCase(medImpactStrength)) {
                     GSN = strength.getGsn();
                     break;
@@ -129,10 +167,10 @@ public class APIClient {
                     return result;
                 }
             }
-        }catch(Exception ex ){
+        } catch (Exception ex) {
 
         }
-        return !GSN.isEmpty()
+        return (!GSN.isEmpty() && GSN != null)
                 ? CompletableFuture.completedFuture(getMedImpactProgramResult(constructMedImpactUrl2(requestObject, longLat, GSN, Brand_indicator).intern()).getDrugs().getLocatedDrug().get(0))
                 : CompletableFuture.completedFuture(medImpactDrug);
 
@@ -142,22 +180,43 @@ public class APIClient {
         WebClient webClient = WebClient.create(url);
         String str = "";
         try {
-             str = webClient
+            str = webClient
                     .get()
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block().intern();
-        }catch(Exception e){
-             str = "";
-             System.out.println(str);
-            System.out.println(e.toString());
+        } catch (Exception e) {
+            str = "";
+
         }
-        return gson.fromJson(str, MedImpact.class);
+        System.out.println("STR");
+        System.out.println(str);
+        if(!str.equals("")){
+            return gson.fromJson(str, MedImpact.class);
+        }
+       else{
+           return null;
+        }
 
     }
 
 
     private String constructMedImpactUrl(RequestObject requestObject, Map<String, String> latLong, String Brand_indicator) {
 
+        try {
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
+                DrugRequest drugRequest = new DrugRequest();
+                drugRequest.setProgramId(3);
+                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugName(requestObject.getDrugName());
+                drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
+                drugRequest.setLatitude(latLong.get("latitude"));
+                drugRequest.setLongitude(latLong.get("longitude"));
+                drugRequestRepository.save(drugRequest);
+            }
+        } catch (Exception ex) {
+
+        }
         return "https://rxsavings.medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv" +
                 "&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_cacheability=cacheLevelPage" +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_cmd=get_drug_detail" +
@@ -166,11 +225,13 @@ public class APIClient {
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lat=" + latLong.get("latitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lng=" + latLong.get("longitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";
+
+
     }
 
     private String constructMedImpactUrl2(RequestObject requestObject, Map<String, String> latLong, String gsn, String Brand_indicator) {
 
-        String s =  "https://rxsavings.medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view" +
+        String s = "https://rxsavings.medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view" +
                 "&p_p_cacheability=cacheLevelPage&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_cmd=get_drug_detail" +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_quantity=" + requestObject.getQuantity() +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_gsn=" + gsn +
@@ -178,7 +239,26 @@ public class APIClient {
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lat=" + latLong.get("latitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lng=" + latLong.get("longitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";
-        return s ;
+        System.out.println("URL");
+        System.out.println(s);
+        try {
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
+                DrugRequest drugRequest = new DrugRequest();
+                drugRequest.setProgramId(3);
+                drugRequest.setDrugId(drugId);
+                drugRequest.setQuantity(requestObject.getQuantity() + "");
+                drugRequest.setGsn(gsn);
+                drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
+                drugRequest.setLatitude(latLong.get("latitude"));
+                drugRequest.setLongitude(latLong.get("longitude"));
+                drugRequestRepository.save(drugRequest);
+            }
+        } catch (Exception ex) {
+
+        }
+
+        return s;
     }
 
     @Async("threadPoolTaskExecutor")
@@ -187,15 +267,35 @@ public class APIClient {
         PostObject postObject = getPostObject(requestObject, longitudeLatitude);
 
         WebClient webClient2 = WebClient.create(INSIDERXURL);
-        List<InsideRx> insideRxList = webClient2
-                .post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .header("csrf-token", CSRF_TOKEN)
-                .header("Cookie", COOKIE)
-                .body(Mono.just(postObject), PostObject.class)
-                .exchange()
-                .flatMapMany(clientResponse -> clientResponse.bodyToFlux(InsideRx.class))
-                .collectList().block();
+        List<InsideRx> insideRxList = new ArrayList<>();
+        try {
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).size() == 0) {
+                DrugRequest drugRequest = new DrugRequest();
+                drugRequest.setProgramId(0);
+                drugRequest.setDrugId(drugId);
+                drugRequest.setBrandIndicator(postObject.getLatitude());
+                drugRequest.setLongitude(postObject.getLongitude());
+                drugRequest.setNdc(postObject.getNdc());
+                drugRequest.setQuantity(postObject.getQuantity());
+                drugRequestRepository.save(drugRequest);
+            }
+        } catch (Exception ex) {
+
+        }
+        try {
+            insideRxList = webClient2
+                    .post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("csrf-token", CSRF_TOKEN)
+                    .header("Cookie", COOKIE)
+                    .body(Mono.just(postObject), PostObject.class)
+                    .exchange()
+                    .flatMapMany(clientResponse -> clientResponse.bodyToFlux(InsideRx.class))
+                    .collectList().block();
+        } catch (Exception ex) {
+
+        }
 
 
         if (!CollectionUtils.isEmpty(insideRxList)) {
@@ -249,7 +349,6 @@ public class APIClient {
         };
 
     }
-
 
 
 }

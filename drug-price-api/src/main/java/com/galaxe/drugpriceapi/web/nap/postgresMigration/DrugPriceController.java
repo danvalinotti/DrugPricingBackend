@@ -123,6 +123,7 @@ public class DrugPriceController {
                 List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
                 drugMaster = drugMasterRepository.findById(drugMaster.getId()).get();
                 drugMaster.setDosageUOM(usPharmacyPrices.get(0).getDosage().getDosageUOM());
+                System.out.println("LINE 126");
                 drugMaster = drugMasterRepository.save(drugMaster);
                 newPrice.setPrice(Double.parseDouble(usPharmacyPrices.get(0).getPriceList().get(0).getDiscountPrice()));
                 newPrice.setPharmacy(usPharmacyPrices.get(0).getPriceList().get(0).getPharmacy().getPharmacyName());
@@ -207,6 +208,7 @@ public class DrugPriceController {
                     if (drugMaster.getDosageUOM() == null || drugMaster.getDosageUOM().equals("")) {
                         drugMaster = drugMasterRepository.findById(drugMaster.getId()).get();
                         drugMaster.setDosageUOM(usPharmacyPrices.get(0).getDosage().getDosageUOM());
+                        System.out.println("LINE 211");
                         drugMasterRepository.save(drugMaster);
                     }
                     return usPharmacyPrices.get(0).getPriceList().get(0).getDiscountPrice();

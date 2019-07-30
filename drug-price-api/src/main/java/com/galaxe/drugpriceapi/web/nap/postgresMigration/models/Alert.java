@@ -17,13 +17,20 @@ public class Alert {
     @Id
     @GeneratedValue
     int id;
+
     @Column
     String name;
+
     @Column
-    String type;
+    String alertTypeId;
+
     @Column
-    String message;
+    String detailedMessage;
+    @Column
+    String status;
+
     @Temporal(TemporalType.TIMESTAMP)
     Date time;
+
 
 }

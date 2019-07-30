@@ -30,7 +30,7 @@ public class  DrugMaster {
     @Column
     String dosageUOM;
     @Column
-    boolean reportFlag;
+    Boolean reportFlag;
     @Column
     String gsn;
 

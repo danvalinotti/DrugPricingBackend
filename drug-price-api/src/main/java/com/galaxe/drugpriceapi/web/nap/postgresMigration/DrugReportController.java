@@ -9,10 +9,12 @@ import com.galaxe.drugpriceapi.web.nap.controller.APIClient;
 import com.galaxe.drugpriceapi.web.nap.controller.APIClient2;
 import com.galaxe.drugpriceapi.web.nap.controller.APIClient3;
 import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.*;
+import com.galaxe.drugpriceapi.web.nap.singlecare.ExclusivePriceDetails;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
@@ -44,6 +46,8 @@ import java.util.concurrent.CompletableFuture;
 public class DrugReportController {
 
     @Autowired
+    MasterListService masterListService;
+    @Autowired
     DrugMasterRepository drugMasterRepository;
     @Autowired
     PriceRepository priceRepository;
@@ -65,7 +69,10 @@ public class DrugReportController {
     DrugAuthController drugAuthController ;
     @Autowired
     DrugAlertController drugAlertController;
-
+    @Autowired
+    DrugMasterController drugMasterController;
+    @Autowired
+    DrugRuleController drugRuleController;
     int count = 0;
     Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
@@ -319,31 +326,50 @@ public class DrugReportController {
 
     @PostMapping(value = "/report/drug/add")
     public List<Report_Drugs> addDrugToReport(@RequestBody RequestObject requestObject, Report report2) throws Throwable {
-
+       System.out.println("Add Drug");
+        int here = 0;
         List<Report_Drugs> report_drugs = new ArrayList<>();
         Map<Integer, Double> providerPrices = new HashMap<>();
         try {
+
             List<DrugMaster> drugMasterList = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity());
             DrugMaster drugMaster = drugMasterList.get(drugMasterList.size() - 1);
-            System.out.println("Old Drug");
-//            List<Price> prices=  priceRepository.findByDrugDetailsId(drugMaster.getId());
-//            System.out.println(drugMaster.getName());
-            for (Price p : priceRepository.findByRecentDrugDetails(drugMaster.getId())) {
-                System.out.println(p.getProgramId());
+            System.out.println("Add Drug Get drugmaster");
+            here = 1;
+            try {
+                requestObject.setGSN(drugMaster.getGsn());
+            }
+            catch (Exception e){
+
+            }
+            List<Price> prices = new ArrayList<>();
+
+           try{
+              prices =  drugMasterController.getDetails(requestObject,drugMaster).getPrices();
+           }catch (Exception e){
+               System.out.println("NO Prices-------------------------------------------------");
+               System.out.println(e.toString());
+           }
+            System.out.println("Add Drug Get prices");
+            for (Price price: prices) {
+
                 Report_Drugs report_drug = new Report_Drugs();
-                Price newPrice = null;
                 try {
-                    System.out.println("Adding new Price");
-                    newPrice = priceRepository.save(drugPriceController.updatePrice(p));
-                    System.out.println("added new price");
+                    Double p = priceRepository.findLastPrice(price.getDrugDetailsId(), price.getProgramId()).get(0).getPrice();
+                    Double diff = p - price.getPrice();
+                    price.setDifference(diff);
+                }catch (Exception ex){
+
+                }
+//                System.out.println("Modified Price");
+                Price newPrice = priceRepository.save(price);
+
+//                    System.out.println("added new price");
                     report_drug.setPriceId(newPrice.getId());
                     report_drug.setReportId(report2.getId());
                     report_drugs.add(report_drug);
-                } catch (Exception exp) {
-
-                }
             }
-            System.out.println("Prices done ");
+
             Report report = reportRepository.findById(report2.getId()).get();
             report.setDrugCount(report.getDrugCount() + 1);
             reportRepository.save(report);
@@ -351,7 +377,7 @@ public class DrugReportController {
             return reportDrugsRepository.saveAll(report_drugs);
 
         } catch (Exception e) {
-
+            if(here ==0){
             DrugMaster drugMaster = new DrugMaster();
 
             drugMaster.setQuantity(requestObject.getQuantity());
@@ -363,11 +389,14 @@ public class DrugReportController {
             String dosageStrength = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
             drugMaster.setDosageStrength(dosageStrength);
             String brandType = priceController.getBrandIndicator(requestObject).intern();
-            drugMaster.setReportFlag(requestObject.getReportFlag());
-            drugMaster.setDrugType(brandType);
-            System.out.println("New Drug");
-            System.out.println(drugMaster.getName());
 
+            try {
+                drugMaster.setReportFlag(requestObject.getReportFlag());
+            }catch (Exception ex ){
+
+            }
+            drugMaster.setDrugType(brandType);
+                System.out.println("LINE 399");
             drugMaster = drugMasterRepository.save(drugMaster);
 
             List<Price> prices = new ArrayList<>();
@@ -420,6 +449,7 @@ public class DrugReportController {
                 p2.setCreatedat(new Date());
                 priceRepository.save(p2);
             }
+            }
 
 
         }
@@ -431,26 +461,18 @@ public class DrugReportController {
         Report report = reportRepository.findById(report2.getId()).get();
         report.setDrugCount(report.getDrugCount() + 1);
         reportRepository.save(report);
-        if (report_drugs == null) {
-            System.out.println("there");
-        }
+
         return report_drugs;
 
     }
-    @GetMapping(value = "/test/distinct/drugs")
-    public StringSender distinctDrugNum(){
-        int id = reportRepository.findFirstByOrderByIdDesc().getId();
-        List<Report_Drugs> report_drugs = reportDrugsRepository.findByReportId(id);
-
-        Set<Integer> distinctDrugs = new HashSet<>();
-
-        for (Report_Drugs reportDrug : report_drugs) {
-            distinctDrugs.add(priceRepository.findById(reportDrug.getPriceId()).get().getDrugDetailsId());
+    @GetMapping(value = "/test")
+    public StringSender test(){
+        try {
+           masterListService.add();
+        }catch (Throwable throwable) {
+            throwable.printStackTrace();
         }
-        StringSender s = new StringSender();
-        s.setKey(distinctDrugs.size()+"");
-        s.setValue(distinctDrugs.size()+"");
-        return s;
+        return null;
     }
 
     @GetMapping(value = "/report/automatic")
@@ -464,32 +486,22 @@ public class DrugReportController {
             newReport.setDrugCount(0);
             newReport = reportRepository.save(newReport);
             Alert alert = new Alert();
-            alert.setMessage("Batch for Report "+ newReport.getId() +" has started");
+            alert.setDetailedMessage("Batch for Report "+ newReport.getId() +" has started");
             alert.setName("Report "+ newReport.getId() +" Batch Start");
-            alert.setType("Batch Start");
+//            alert.setType("Batch Start");
             alert.setTime(new Date());
             drugAlertController.sendAlert(alert);
             forward = 1;
-            //Get report drugs by  report id
-            List<Report_Drugs> report_drugs = reportDrugsRepository.findByReportId(reportId);
-//
-//            Set<Integer> distinctDrugs = new HashSet<>();
-//
-//            for (Report_Drugs reportDrug : report_drugs) {
-//                long timestart = System.currentTimeMillis();
-//                distinctDrugs.add(priceRepository.findById(reportDrug.getPriceId()).get().getDrugDetailsId());
-//                long end = System.currentTimeMillis();
-//                System.out.println(end-timestart);
-//            }
 
-            List<DrugMaster> drugMasterList = drugMasterRepository.findByReportFlag(true);
-            List<MongoEntity> mongoEntities = new ArrayList<>();
-            System.out.println("SIZE:" + drugMasterList.size());
+            List<DrugMaster> drugMasterList = drugMasterRepository.findByReportFlagOrderById(true);
+
             //create a mongoEntity from a distinct drug and prices
+            int count = 1;
             for (DrugMaster drugMaster : drugMasterList) {
                 System.out.println(drugMaster.getName());
+                System.out.println(count + "out of " + drugMasterList.size());
                 //DrugMaster drugMaster = drugMasterRepository.findById(i).get();
-
+                count++;
                 RequestObject requestObject = new RequestObject();
 
                 requestObject.setQuantity(drugMaster.getQuantity());
@@ -498,6 +510,8 @@ public class DrugReportController {
                 requestObject.setDrugName(drugMaster.getName());
                 requestObject.setDrugNDC(drugMaster.getNdc());
                 requestObject.setZipcode(drugMaster.getZipCode());
+                requestObject.setReportFlag(drugMaster.getReportFlag());
+
                 Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
                 String brandType = priceController.getBrandIndicator(requestObject);
                 if (brandType.equals("B")) {
@@ -506,8 +520,10 @@ public class DrugReportController {
                     brandType = "GENERIC";
                 }
                 requestObject.setDrugType(brandType);
+                System.out.println("Before add Drug");
                 try {
                     addDrugToReport(requestObject, newReport);
+                    System.out.println("After add Drug");
                 } catch (Throwable throwable) {
                     throwable.printStackTrace();
                 }
@@ -515,26 +531,31 @@ public class DrugReportController {
 
             }
             Alert alert2 = new Alert();
-            alert2.setMessage("Batch for Report "+ newReport.getId() +" has ended successfully");
+            alert2.setDetailedMessage("Batch for Report "+ newReport.getId() +" has ended successfully");
             alert2.setName("Report "+ newReport.getId() +" Batch Ended");
-            alert2.setType("Batch Ended");
+//            alert2.setName("Batch Ended");
             alert2.setTime(new Date());
             drugAlertController.sendAlert(alert2);
+
+
+            drugRuleController.checkRules(newReport);
+
             return newReport;
         } catch (Exception e) {
             if (forward == 0) {
                 masterListTestController.addToMasterList();
             }
             Alert alert3 = new Alert();
-            alert3.setMessage("Batch for Report has failed");
+            alert3.setDetailedMessage("Batch for Report has failed");
             alert3.setName("Report Batch Failed");
-            alert3.setType("Batch Failed");
+//            alert3.set("Batch Failed");
             alert3.setTime(new Date());
             drugAlertController.sendAlert(alert3);
         }
 
         return null;
     }
+
 
     @PostMapping(value = "/create/report/manual")//List<List<String>>
     public ResponseEntity<Resource> createManualReport(@RequestBody ManualReportRequest2 manualrequestObject) {
@@ -727,5 +748,6 @@ public class DrugReportController {
 
         return row;
     }
+
 
 }

@@ -11,7 +11,7 @@ public class WellRxGSNSearch {
     public String ncpdps;
 
     public WellRxGSNSearch(){
-        System.out.println("NEW GSNSEARCH");
+
     }
     public String getGSN(){
         return this.gsn;
