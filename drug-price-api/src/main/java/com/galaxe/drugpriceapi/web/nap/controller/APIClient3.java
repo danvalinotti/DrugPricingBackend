@@ -44,6 +44,13 @@ public class APIClient3 {
                     drugRequest.setProgramId(5);
                     drugRequest.setDrugId(drugId);
                     drugRequestRepository.save(drugRequest);
+                }else{
+                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).get(0);
+                    drugRequest.setZipcode(requestObject.getZipcode());
+                    drugRequest.setDrugName(requestObject.getDrugName());
+                    drugRequest.setProgramId(5);
+                    drugRequest.setDrugId(drugId);
+                    drugRequestRepository.save(drugRequest);
                 }
             } catch (Exception ex) {
 

@@ -17,6 +17,8 @@ import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.apache.poi.ss.usermodel.*;
@@ -31,6 +33,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.security.Key;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -82,6 +85,31 @@ public class DrugMasterController {
     public void drugsAllTrue() {
         drugMasterRepository.setAllTrue();
     }
+    @GetMapping("/reset/dosageStrengths")
+    public void resetDosageStrengths() {
+        Gson gson= new Gson();
+        int dosageIndex = 0;
+        for (DrugMaster drug: drugMasterRepository.findAll()) {
+//            System.out.println(priceController.getDrugInfo(drug.getName()));
+            Type type = new TypeToken<List<DrugDosage>>() {}.getType();
+            String priceStr = priceController.getDrugInfo(drug.getName());
+            List<DrugDosage> drugInfo= gson.fromJson(priceStr, type);
+            int i = 0;
+            for (Dose dose: drugInfo.get(0).getDose()) {
+
+                if(dose.getValue().equalsIgnoreCase(drug.getNdc())){
+                    System.out.println(i);
+                    dosageIndex = i;
+                }
+                i++;
+            }
+            i=0;
+           // drugInfo.get(0).getDose().get(dosageIndex).getDosage();
+            drug.setDosageStrength(drugInfo.get(0).getDose().get(dosageIndex).getLabel());
+           drugMasterRepository.save(drug);
+            // drug.setDosageUOM();
+        }
+    }
 
 
 
@@ -104,6 +132,8 @@ public class DrugMasterController {
         start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
+        if(requestObject.getDrugName().equalsIgnoreCase("Climara")){
+        }
         CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
         CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
@@ -118,18 +148,25 @@ public class DrugMasterController {
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture, blinkFuture).join();
         else {
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
-            //    System.out.println("AllProviders:"+(System.currentTimeMillis()-start));
             //   start = System.currentTimeMillis();
         }
 
 
-        // System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
         List<InsideRx> insideRxPrices = inside.get();
         List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
         List<Drugs> wellRx = wellRxFuture.get();
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
+        if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){
+            System.out.println("DRUG MASTER GENOTROPIN 1.6");
+            try {
+                System.out.println(wellRx.get(0).getPrice());
+            }catch (Exception ex){
+                System.out.println("ERROR");
+            }
+
+        }
         Blink blink = null;
         if (blinkFuture != null)
             blink = apiService3.getBlinkPharmacyPrice(requestObject).get();
@@ -163,11 +200,19 @@ public class DrugMasterController {
         Price p2 = new Price();
         try {
             Drugs well = wellRx.get(0);
+
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT Drug");}
             p2.setPrice(Double.parseDouble(well.getPrice()));
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT price");}
             p2.setPharmacy(well.getPharmacyName());
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT pharmacy");}
             p2.setProgramId(2);
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT program");}
             p2.setDrugDetailsId(drugMaster.getId());
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT id");}
         } catch (Exception e) {
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Return null"+ prices.size());}
+
             p2 = null;
         }
         //MediIMpact
@@ -205,6 +250,7 @@ public class DrugMasterController {
         prices.add(p4);
         prices.add(p5);
 
+        if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("B4 Prices size"+ prices.size());}
 
         pricesAndMaster.setDrugMaster(drugMaster);
         pricesAndMaster.setPrices(prices);
@@ -214,10 +260,8 @@ public class DrugMasterController {
 //        MongoEntity entity =  priceController.constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink);
 //        MongoEntity newEntity = new MongoEntity();
 //
-//        System.out.println("ConstructEntity:"+(System.currentTimeMillis()-start));
 //        start = System.currentTimeMillis();
 //        MongoEntity m  =  priceController.updateDiff(entity,requestObject);
-//        System.out.println("updateDiff:"+(System.currentTimeMillis()-start));
 
 
     }

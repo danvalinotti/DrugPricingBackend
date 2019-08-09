@@ -142,7 +142,6 @@ public class DrugDashboardController {
             drugMaster1.setQuantity(requestObject.getQuantity());
             String brandType = priceController.getBrandIndicator(requestObject).intern();
             drugMaster1.setDrugType(brandType);
-            System.out.println("LINE 145");
             drugMaster = drugMasterRepository.save(drugMaster1);
         }
 

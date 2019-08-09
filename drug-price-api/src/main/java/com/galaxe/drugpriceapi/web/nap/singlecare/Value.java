@@ -10,5 +10,5 @@ import java.util.List;
 public class Value {
 
     private List<PharmacyPricings> PharmacyPricings;
-
+    private String NDC;
 }

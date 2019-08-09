@@ -192,20 +192,23 @@ public class DrugReportController {
     @GetMapping(value = "/reportdrugs/get/{r}")
     public ResponseEntity<Resource> exportReportById(@PathVariable String r) {
         int reportId = Integer.parseInt(r);
-
+        System.out.println("STARTING EXPORT");
         //Get report drugs by  report id
         List<Report_Drugs> report_drugs = reportDrugsRepository.findByReportId(reportId);
-
+        System.out.println("GOT REPORT DRUGS");
         Set<Integer> distinctDrugs = new HashSet<Integer>();
+        System.out.println("DRUG LIST SIZE"+report_drugs.size());
 
         for (Report_Drugs reportDrug : report_drugs) {
+
             distinctDrugs.add(priceRepository.findById(reportDrug.getPriceId()).get().getDrugDetailsId());
         }
-
+        System.out.println("GOT DISTINCT DRUGS");
         List<MongoEntity> mongoEntities = new ArrayList<>();
 
         //create a mongoEntity from a distinct drug and prices
         for (Integer i : distinctDrugs) {
+            System.out.println(i);
             MongoEntity mongoEntity = new MongoEntity();
             DrugMaster drugMaster = drugMasterRepository.findById(i).get();
             mongoEntity.setZipcode(drugMaster.getZipCode());
@@ -221,6 +224,7 @@ public class DrugReportController {
             mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
             mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
             for (int x = 0; x < programArr.length; x++) {
+                System.out.println("Rpgram"+x);
                 Program program = new Program();
                 program.setProgram(x + "");
                 program.setPrice("N/A");
@@ -229,6 +233,7 @@ public class DrugReportController {
                 programArr[x] = program;
             }
             for (Price p : prices) {
+                System.out.println("Price"+prices.indexOf(p));
                 Program program = new Program();
                 program.setProgram(p.getProgramId() + "");
                 program.setPrice(p.getPrice() + "");
@@ -326,7 +331,6 @@ public class DrugReportController {
 
     @PostMapping(value = "/report/drug/add")
     public List<Report_Drugs> addDrugToReport(@RequestBody RequestObject requestObject, Report report2) throws Throwable {
-       System.out.println("Add Drug");
         int here = 0;
         List<Report_Drugs> report_drugs = new ArrayList<>();
         Map<Integer, Double> providerPrices = new HashMap<>();
@@ -334,7 +338,6 @@ public class DrugReportController {
 
             List<DrugMaster> drugMasterList = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity());
             DrugMaster drugMaster = drugMasterList.get(drugMasterList.size() - 1);
-            System.out.println("Add Drug Get drugmaster");
             here = 1;
             try {
                 requestObject.setGSN(drugMaster.getGsn());
@@ -347,36 +350,59 @@ public class DrugReportController {
            try{
               prices =  drugMasterController.getDetails(requestObject,drugMaster).getPrices();
            }catch (Exception e){
-               System.out.println("NO Prices-------------------------------------------------");
-               System.out.println(e.toString());
            }
-            System.out.println("Add Drug Get prices");
-            for (Price price: prices) {
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Prices size"+ prices.size());}
 
-                Report_Drugs report_drug = new Report_Drugs();
+            for (Price price: prices) {
                 try {
-                    Double p = priceRepository.findLastPrice(price.getDrugDetailsId(), price.getProgramId()).get(0).getPrice();
-                    Double diff = p - price.getPrice();
-                    price.setDifference(diff);
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6") && price.getProgramId() == 2) {
+                        System.out.println("WELL RX PRICE NOW ");
+                    }
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+                        System.out.println("GOT price2");
+                    }
+
+                    Report_Drugs report_drug = new Report_Drugs();
+                    try {
+                        Double p = priceRepository.findLastPrice(price.getDrugDetailsId(), price.getProgramId()).get(0).getPrice();
+                        Double diff = p - price.getPrice();
+                        price.setDifference(diff);
+                    } catch (Exception ex) {
+
+                    }
+
+                    Price newPrice = priceRepository.save(price);
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+                        System.out.println("Saved Price");
+                    }
+
+                    report_drug.setPriceId(newPrice.getId());
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+                        System.out.println("set id ");
+                    }
+                    report_drug.setReportId(report2.getId());
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+                        System.out.println("setreport id ");
+                    }
+                    report_drugs.add(report_drug);
+                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+                        System.out.println("Added To report Drugs");
+                    }
                 }catch (Exception ex){
 
                 }
-//                System.out.println("Modified Price");
-                Price newPrice = priceRepository.save(price);
-
-//                    System.out.println("added new price");
-                    report_drug.setPriceId(newPrice.getId());
-                    report_drug.setReportId(report2.getId());
-                    report_drugs.add(report_drug);
             }
 
             Report report = reportRepository.findById(report2.getId()).get();
             report.setDrugCount(report.getDrugCount() + 1);
             reportRepository.save(report);
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("About to save report drug");}
 
             return reportDrugsRepository.saveAll(report_drugs);
 
         } catch (Exception e) {
+            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Error before save");}
+
             if(here ==0){
             DrugMaster drugMaster = new DrugMaster();
 
@@ -396,7 +422,6 @@ public class DrugReportController {
 
             }
             drugMaster.setDrugType(brandType);
-                System.out.println("LINE 399");
             drugMaster = drugMasterRepository.save(drugMaster);
 
             List<Price> prices = new ArrayList<>();
@@ -449,6 +474,9 @@ public class DrugReportController {
                 p2.setCreatedat(new Date());
                 priceRepository.save(p2);
             }
+            }else{
+                if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Skipped");}
+
             }
 
 
@@ -458,6 +486,8 @@ public class DrugReportController {
 
             r = reportDrugsRepository.save(r);
         }
+        if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Saved Report Drugs");}
+
         Report report = reportRepository.findById(report2.getId()).get();
         report.setDrugCount(report.getDrugCount() + 1);
         reportRepository.save(report);
@@ -498,8 +528,6 @@ public class DrugReportController {
             //create a mongoEntity from a distinct drug and prices
             int count = 1;
             for (DrugMaster drugMaster : drugMasterList) {
-                System.out.println(drugMaster.getName());
-                System.out.println(count + "out of " + drugMasterList.size());
                 //DrugMaster drugMaster = drugMasterRepository.findById(i).get();
                 count++;
                 RequestObject requestObject = new RequestObject();
@@ -520,10 +548,8 @@ public class DrugReportController {
                     brandType = "GENERIC";
                 }
                 requestObject.setDrugType(brandType);
-                System.out.println("Before add Drug");
                 try {
                     addDrugToReport(requestObject, newReport);
-                    System.out.println("After add Drug");
                 } catch (Throwable throwable) {
                     throwable.printStackTrace();
                 }

@@ -97,7 +97,6 @@ public class MasterListService {
 //        m.setBatchDetails(new BatchDetails(count+1,new Date()));
 //
 //        m.setTotalBatches(count+1);
-//        System.out.println("MasterList batch over");
         return m;
 
     }
@@ -252,7 +251,6 @@ public class MasterListService {
     }
 
     public List<String> getFinalDrug(RequestObject requestObject,ManualReportRequest reportRequest) throws Throwable {
-//        System.out.println(requestObject.getDrugName());
         long start = System.currentTimeMillis();
         Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
 
@@ -324,7 +322,6 @@ public class MasterListService {
         start = System.currentTimeMillis();
 
 
-        // System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
         List<InsideRx> insideRxPrices = null;
         List<DrugNAP2> usPharmacyPrices = null;

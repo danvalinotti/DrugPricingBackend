@@ -29,11 +29,9 @@ public class PriceListener {
     }
     @PreUpdate
     public void userPreUpdate(Price price) {
-        System.out.println("Listening User Pre Update : " + price.getPrice());
     }
 
     @PreRemove
     public void userPreRemove(Price price) {
-        System.out.println("Listening User Pre Remove : " + price.getPrice());
     }
 }

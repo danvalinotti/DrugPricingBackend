@@ -98,10 +98,8 @@ public class PriceController {
 
     private Boolean flag =  setScheduledFutureJob();
     private Runnable startBatchJob() {
-        System.out.println("startBatchJob");
         Runnable task = () -> {
             count++;
-            System.out.println("Task Run count :: " + count);
 //            List<MongoEntity> entities = mongoEntityRepo.findAll();
 //            if (!CollectionUtils.isEmpty(entities)) {
 //                entities.forEach(entity -> {   //For each drug in dashboard
@@ -120,7 +118,6 @@ public class PriceController {
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
             }
-            System.out.println("Tasked ended count :: " + count);
         };
         return task;
     }
@@ -145,44 +142,48 @@ public class PriceController {
         ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.SECONDS);
     }
     private boolean setScheduledFutureJob(){
-
-        if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+        if(now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0){
             this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0).plusDays(1));
-        }else if(now.compareTo(now.withHour(16).withMinute(0).withSecond(0)) > 0){
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
-        }else if(now.compareTo(now.withHour(12).withMinute(0).withSecond(0)) > 0){
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
-        }else if(now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0){
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
-        }else if(now.compareTo(now.withHour(5).withMinute(0).withSecond(0)) > 0){
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
         }else{
-            this.times.add(now.withHour(5).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
-            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+            this.times.add( now.withHour(9).withMinute(0).withSecond(0));
         }
+//        if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0).plusDays(1));
+//        }else if(now.compareTo(now.withHour(16).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(12).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(5).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else{
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }
         for(int i = 0 ; i<this.times.size();i++){
             ZonedDateTime nextRun = this.times.get(i);
             Duration duration = Duration.between(now, nextRun);
@@ -191,7 +192,8 @@ public class PriceController {
             ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
             scheduler.scheduleAtFixedRate(startBatchJob(),
                     initalDelay,
-                    TimeUnit.DAYS.toSeconds(1),
+                    TimeUnit.DAYS.toSeconds(2),
+//                    TimeUnit.DAYS.toSeconds(1),
                     TimeUnit.SECONDS);
         }
 
@@ -317,7 +319,6 @@ public class PriceController {
     }
 
     public MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
-//        System.out.println(requestObject.getDrugName());
         long start = System.currentTimeMillis();
         Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
 
@@ -335,13 +336,15 @@ public class PriceController {
         start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
+        if(requestObject.getDrugName().equalsIgnoreCase("Climara")){
+        }
         CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
         CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
-
-             blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
+//        CompletableFuture<PharmacyPricings> GoodRxFuture = apiService.getGoodRxPrices(requestObject);
+        blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
 
 
 
@@ -350,18 +353,24 @@ public class PriceController {
               CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture, blinkFuture).join();
           else{
              CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
-         //    System.out.println("AllProviders:"+(System.currentTimeMillis()-start));
           //   start = System.currentTimeMillis();
          }
 
 
 
-       // System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
         List<InsideRx> insideRxPrices = inside.get();
         List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
         List<Drugs> wellRx = wellRxFuture.get();
+        if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){
+            System.out.println("GENOTROPIN 1.6");
+            try {
+                System.out.println(wellRx.get(0).getPrice());
+            }catch (Exception ex){
+                System.out.println("ERROR");
+            }
 
+        }
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
         Blink blink = null;
@@ -377,6 +386,7 @@ public class PriceController {
         start = System.currentTimeMillis();
         MongoEntity m  = updateDiff(entity,requestObject);
 
+//        System.out.println("WELL RX PRICE "+m.getPrograms().get(2).getPrice());
 
         return m;
 
@@ -415,7 +425,6 @@ public class PriceController {
             long start = System.currentTimeMillis();
             WebClient webClient = WebClient.create("https://api.promaptools.com/service/us/zip-lat-lng/get/?zip=" + zip + "&key=17o8dysaCDrgv1c");
             List<ZipcodeConverter> longLat = webClient.get().exchange().flatMapMany(clientResponse -> clientResponse.bodyToFlux(ZipcodeConverter.class)).collectList().block();
-            System.out.println("LatlongAPI:"+(System.currentTimeMillis()-start));
 
             Map<String, String> map = new HashMap<>();
             map.put("longitude", longLat.get(0).getOutput().get(0).getLongitude());

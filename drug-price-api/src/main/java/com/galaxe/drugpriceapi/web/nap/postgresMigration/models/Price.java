@@ -43,10 +43,8 @@ public class Price {
 
     @PrePersist
     public void beforeInsert(){
-//        System.out.println("Before Insert");
 //
 //        try{
-//            System.out.println("this"+this.getPrice());
 //        }catch(Exception e ){
 //
 //        }
