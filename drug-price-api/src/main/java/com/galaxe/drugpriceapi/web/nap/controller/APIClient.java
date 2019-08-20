@@ -12,6 +12,8 @@ import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugRequest;
 import com.galaxe.drugpriceapi.web.nap.singlecare.*;
 import com.google.gson.Gson;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
@@ -21,6 +23,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
 
+import java.io.IOException;
 import java.sql.SQLOutput;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -601,14 +604,32 @@ public class APIClient {
 
     public CompletableFuture<PharmacyPricings> getGoodRxPrices(RequestObject requestObject) {
         String str;
-        WebClient webClient = WebClient.create("https://www.goodrx.com/"+requestObject.getDrugName());
-        str = webClient
-                .get()
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve().bodyToMono(String.class).block().intern();
-        int start = str.indexOf("__state__=")+10;
-        int end = str.indexOf(";<",start);
-        String json = str.substring(start,end );
+        //Jsoup
+        try {
+            Document doc = Jsoup.connect("https://www.goodrx.com/lipitor?dosage=20mg&form=tablet&label_override=Lipitor&quantity=30").userAgent("Mozilla")
+                    .referrer("http://www.google.com").get();
+            String s = doc.toString();
+            if(s.contains("__state__=")){
+                int start = s.indexOf("__state__=")+10;
+                int end = s.indexOf(";<",start);
+                String json = s.substring(start,end );
+            }else{
+                System.out.println("NOT FOUND");
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+
+//        str = webClient
+//                .get()
+//                .accept(MediaType.APPLICATION_JSON)
+//                .retrieve().bodyToMono(String.class).block().intern();
+//        int start = str.indexOf("__state__=")+10;
+//        int end = str.indexOf(";<",start);
+//        String json = str.substring(start,end );
        // System.out.println("JSON"+json);
        //        String id =
         return null;

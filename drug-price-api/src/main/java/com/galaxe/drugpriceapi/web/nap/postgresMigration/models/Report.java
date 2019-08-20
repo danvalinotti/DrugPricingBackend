@@ -18,10 +18,10 @@ public class Report {
     int id;
 
     @Column
-    int userId;
+    Integer userId;
     @Temporal(TemporalType.TIMESTAMP)
     Date timestamp;
     @Column
-    int drugCount;
+    Integer drugCount;
 
 }

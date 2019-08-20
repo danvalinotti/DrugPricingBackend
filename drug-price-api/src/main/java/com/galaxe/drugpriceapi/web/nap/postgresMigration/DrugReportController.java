@@ -73,6 +73,8 @@ public class DrugReportController {
     DrugMasterController drugMasterController;
     @Autowired
     DrugRuleController drugRuleController;
+    @Autowired
+    ReportRowRepository reportRowRepository;
     int count = 0;
     Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
@@ -87,6 +89,7 @@ public class DrugReportController {
         newReport.setTimestamp(new Date());
         newReport.setUserId(1);
         newReport.setDrugCount(lastReport.getDrugCount());
+//        newReport.setDrugCount(0);
         newReport = reportRepository.save(newReport);
         addDrugsToReport(lastReport, newReport);
 
@@ -224,7 +227,7 @@ public class DrugReportController {
             mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
             mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
             for (int x = 0; x < programArr.length; x++) {
-                System.out.println("Rpgram"+x);
+//                System.out.println("Program"+x);
                 Program program = new Program();
                 program.setProgram(x + "");
                 program.setPrice("N/A");
@@ -233,7 +236,7 @@ public class DrugReportController {
                 programArr[x] = program;
             }
             for (Price p : prices) {
-                System.out.println("Price"+prices.indexOf(p));
+//                System.out.println("Price"+prices.indexOf(p));
                 Program program = new Program();
                 program.setProgram(p.getProgramId() + "");
                 program.setPrice(p.getPrice() + "");
@@ -256,9 +259,13 @@ public class DrugReportController {
         //return
 
     }
+//    @GetMapping(value = "/reportdrugs/get/{r}")
+//    public ResponseEntity<Resource> exportReport(@PathVariable String r) {
+//
+//        return null;
+//    }
 
     public ResponseEntity<Resource> exportReport(List<MongoEntity> mongoEntities) {
-
         List<List<String>> rows = new ArrayList<>();
         String[] str = {"Drug Name", "Drug Type", "Dosage Strength",
                 "Quantity", "Zip Code", "Inside Rx Price", "U.S Pharmacy Card Price",
@@ -291,6 +298,46 @@ public class DrugReportController {
 
     }
 
+    @GetMapping("/asd/{r}")
+    public ResponseEntity<Resource> getReportRows(@PathVariable String r){
+        Integer reportId = Integer.parseInt(r);
+        List<List<String>> rows = new ArrayList<>();
+        List<String> data0 = new ArrayList<>();
+        data0.add("Drug Name");
+        data0.add("Drug Type");
+        data0.add("Dosage Strength");
+        data0.add("Quantity");
+        data0.add("Zip Code");
+        data0.add("InsideRx Price");
+        data0.add("U.S Pharmacy Card Price");
+        data0.add("WellRx Price");
+        data0.add("MedImpact Price");
+        data0.add("Singlecare Price");
+        data0.add("Blink Price");
+        data0.add("Recommended Price");
+        data0.add("Difference Price");
+        rows.add(data0);
+        for (ReportRow reportRow:this.reportRowRepository.exportReport(reportId)) {
+            List<String> data = new ArrayList<>();
+            data.add(reportRow.name);
+            data.add("");
+            data.add(reportRow.dosage_strength);
+            data.add(reportRow.quantity);
+            data.add("");
+            data.add(reportRow.insiderx_price);
+            data.add(reportRow.pharm_price);
+            data.add(reportRow.wellrx_price);
+            data.add(reportRow.medimpact_price);
+            data0.add(reportRow.singlecare_price);
+            data.add(reportRow.blink_price);
+            data.add("");
+            data.add("");
+            rows.add(data);
+        }
+        return exportManualReport(rows);
+
+    }
+
     private void addDrugsToReport(Report lastReport, Report newReport) {
         try {
             List<Price> oldReportPrices = drugPriceController.getReportPrices(lastReport);
@@ -301,8 +348,6 @@ public class DrugReportController {
             Double averagePrice;
             Double sum = 0.0;
             for (Price p2 : updatedPrices) {
-
-
                 sum = sum + p2.getPrice();
                 if (p2.getPrice() <= lowestPrice) {
                     lowestPrice = p2.getPrice();
@@ -531,7 +576,7 @@ public class DrugReportController {
                 //DrugMaster drugMaster = drugMasterRepository.findById(i).get();
                 count++;
                 RequestObject requestObject = new RequestObject();
-
+                drugMasterRepository.saveAll(drugMasterRepository.findAll());
                 requestObject.setQuantity(drugMaster.getQuantity());
 
                 requestObject.setDosageStrength(drugMaster.getDosageStrength());
@@ -568,6 +613,7 @@ public class DrugReportController {
 
             return newReport;
         } catch (Exception e) {
+            e.printStackTrace();
             if (forward == 0) {
                 masterListTestController.addToMasterList();
             }

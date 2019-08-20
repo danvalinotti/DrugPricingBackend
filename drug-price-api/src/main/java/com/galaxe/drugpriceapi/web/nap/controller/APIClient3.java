@@ -33,24 +33,31 @@ public class APIClient3 {
 
             CompletableFuture<Price> price = blinkClient.getBlinkPrice(requestObject);
 
+            if(price == null){
+                requestObject.setDrugName(requestObject.getDrugName().split("\\s")[0]);
+                price = blinkClient.getBlinkPrice(requestObject);
+            }
             //Wait until they are all done
             CompletableFuture.allOf(pharmacy, price).join();
             try {
-                int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
-                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).size() == 0) {
-                    DrugRequest drugRequest = new DrugRequest();
-                    drugRequest.setZipcode(requestObject.getZipcode());
-                    drugRequest.setDrugName(requestObject.getDrugName());
-                    drugRequest.setProgramId(5);
-                    drugRequest.setDrugId(drugId);
-                    drugRequestRepository.save(drugRequest);
-                }else{
-                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).get(0);
-                    drugRequest.setZipcode(requestObject.getZipcode());
-                    drugRequest.setDrugName(requestObject.getDrugName());
-                    drugRequest.setProgramId(5);
-                    drugRequest.setDrugId(drugId);
-                    drugRequestRepository.save(drugRequest);
+                if(price.join().getLocal().getRaw_value()!="") {
+                    int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+                    if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).size() == 0) {
+                        DrugRequest drugRequest = new DrugRequest();
+                        drugRequest.setZipcode(requestObject.getZipcode());
+                        drugRequest.setDrugName(requestObject.getDrugName().replace(" ", "-"));
+                        drugRequest.setProgramId(5);
+                        drugRequest.setGsn(price.join().getMedId());
+                        drugRequest.setDrugId(drugId);
+                        drugRequestRepository.save(drugRequest);
+                    } else {
+                        DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).get(0);
+                        drugRequest.setZipcode(requestObject.getZipcode());
+                        drugRequest.setDrugName(requestObject.getDrugName().replace(" ", "-"));
+                        drugRequest.setProgramId(5);
+                        drugRequest.setDrugId(drugId);
+                        drugRequestRepository.save(drugRequest);
+                    }
                 }
             } catch (Exception ex) {
 

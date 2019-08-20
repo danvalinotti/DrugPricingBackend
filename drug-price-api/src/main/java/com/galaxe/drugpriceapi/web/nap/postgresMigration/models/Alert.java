@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.List;
 
 @Entity
+@EntityListeners(AlertListener.class)
 @Table
 @Getter
 @Setter

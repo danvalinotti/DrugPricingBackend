@@ -31,4 +31,5 @@ public interface ReportRepository extends JpaRepository<Report,Integer> {
     List<Report> findByDate(String date);
 
     List<Report> findByDrugCount(Integer drugCount);
+
 }

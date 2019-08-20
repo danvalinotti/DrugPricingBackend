@@ -43,6 +43,12 @@ public class DrugProfileController {
     public Profile adminCreateUser(@RequestBody Profile profile)  {
 //        if(profileRepository.findByUsername(profile.getUsername()).size() != 0){
             String newPassword = BCrypt.hashpw("Galaxy123",BCrypt.gensalt());
+            try {
+                profile.setUsername(profile.getUsername().trim());
+            }catch (Exception ex){
+
+            }
+            profile.setUsername(profile.getUsername().trim());
             profile.setPassword(newPassword);
             profile.setRole("created"+profile.getRole());
             return profileRepository.save(profile);
@@ -69,6 +75,11 @@ public class DrugProfileController {
     @PostMapping("/signUp")
     public Profile signUp(@RequestBody Profile profile){
         if(profileRepository.findByUsername(profile.getUsername()).size() == 0){
+            try {
+                profile.setUsername(profile.getUsername().trim());
+            }catch (Exception ex){
+
+            }
             String newPassword = BCrypt.hashpw(profile.getPassword(),BCrypt.gensalt());
             profile.setPassword(newPassword);
             return profileRepository.save(profile);

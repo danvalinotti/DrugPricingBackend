@@ -47,6 +47,18 @@ public class DrugAlertController {
         alertType.setActive(true);
         return this.alertTypeRepository.save(alertType);
     }
+    @GetMapping("/test/alert")
+    public Alert sendTestAlert(){
+        Alert a = new Alert();
+        a.setAlertTypeId("183565");
+        a.setStatus("Complete");
+        a.setTime(new Date());
+        a.setDetailedMessage("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt " +
+                "ut labore et dolore magna aliqua. Nunc pulvinar sapien et ligula ullamcorper malesuada. ");
+        a.setName("Test Alert");
+
+        return alertRepository.save(a);
+    }
 
     @PostMapping("/post")
     public WellRxGSNSearch testPost(@RequestBody WellRxGSNSearch w){

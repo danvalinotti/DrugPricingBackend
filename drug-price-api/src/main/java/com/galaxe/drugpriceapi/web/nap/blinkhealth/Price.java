@@ -9,5 +9,6 @@ public class Price {
 
 
     private Local local;
+    private String medId;
 
 }

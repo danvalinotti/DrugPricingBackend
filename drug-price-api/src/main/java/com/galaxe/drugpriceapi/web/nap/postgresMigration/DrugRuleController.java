@@ -47,11 +47,12 @@ public class DrugRuleController {
 
         for (Price price :prices) {
             for (DrugRule rule :drugRules) {
-                if(rule.getDrugId() == price.getDrugDetailsId()){
-                    if(rule.getPercentChange()<= price.getDifference()/price.getPrice()){
+                if(rule.getDrugId() == 0 || rule.getDrugId() == price.getDrugDetailsId()){
+                    double drugPerc =price.getDifference()/(price.getPrice()+price.getDifference())*100;
+                    if(rule.getPercentChange()<= drugPerc){
                         Alert alert  = new Alert();
                         alert.setName("Price Change");
-                        alert.setDetailedMessage("There was a "+price.getDifference()/price.getPrice()+"% change");
+                        alert.setDetailedMessage("There was a "+drugPerc+"% change");
                         alert.setTime(new Date());
                         alert.setStatus("New");
                         alert.setAlertTypeId(rule.getAlertTypeId()+"");
