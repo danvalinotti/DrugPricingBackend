@@ -143,6 +143,9 @@ public class DrugDashboardController {
             String brandType = priceController.getBrandIndicator(requestObject).intern();
             drugMaster1.setDrugType(brandType);
             drugMaster = drugMasterRepository.save(drugMaster1);
+
+            priceController.createDrugRequests(requestObject);
+            //ADD DrugRequstCreation
         }
 
 

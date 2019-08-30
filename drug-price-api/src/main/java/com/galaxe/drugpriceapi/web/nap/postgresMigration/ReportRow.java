@@ -17,6 +17,8 @@ import javax.persistence.Id;
 public class ReportRow {
     @Id
     Integer id ;
+    String gsn;
+    String ndc;
     String dosage_strength;
     String quantity;
     String name ;
@@ -26,6 +28,8 @@ public class ReportRow {
     String blink_price ;
     String singlecare_price ;
     String pharm_price ;
+
+    String recommended_price;
 
 
 }

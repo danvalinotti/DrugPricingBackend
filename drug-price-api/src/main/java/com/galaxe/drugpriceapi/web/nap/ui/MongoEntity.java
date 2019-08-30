@@ -45,6 +45,8 @@ public class MongoEntity {
 
     private String recommendedDiff;
 
+    private String description;
+
     @CreatedDate
     private DateTime created;
 

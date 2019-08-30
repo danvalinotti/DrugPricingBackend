@@ -63,9 +63,9 @@ public class APIClient {
         try {
             drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
 
-            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 3);
+            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 4);
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() != 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).size() != 0) {
                 String json = gson.toJson(constructSinglecarePostObject(drugRequests.get(0)));
 //                System.out.println("DrugSaved");
                 if(drugRequests.get(0).getDrugName() == null || drugRequests.get(0).getDrugName().equals("")){
@@ -520,7 +520,8 @@ public class APIClient {
                 DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).get(0);
                 drugRequest.setProgramId(0);
                 drugRequest.setDrugId(drugId);
-                drugRequest.setBrandIndicator(postObject.getLatitude());
+                drugRequest.setBrandIndicator(requestObject.getDrugType());
+                drugRequest.setLatitude(postObject.getLatitude());
                 drugRequest.setLongitude(postObject.getLongitude());
                 drugRequest.setNdc(postObject.getNdc());
                 drugRequest.setQuantity(postObject.getQuantity());
@@ -532,10 +533,8 @@ public class APIClient {
                 drugRequestRepository.save(drugRequest);
             }
         } catch (Exception ex) {
-
         }
         try {
-
             insideRxList = webClient2
                     .post()
                     .contentType(MediaType.APPLICATION_JSON)

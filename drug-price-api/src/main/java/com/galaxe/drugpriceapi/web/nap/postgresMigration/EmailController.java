@@ -38,7 +38,7 @@ public class EmailController {
             message.setSubject("Alert");
             message.setText("Testing email");
 
-            mailSender.send(message);
+//            mailSender.send(message);
         }
 
 
@@ -48,7 +48,7 @@ public class EmailController {
         try{
             List<String> emails = new ArrayList<>();
             emails.add("mgood@galaxe.com");
-            emails.add("test@galaxe.com");
+//            emails.add("test@galaxe.com");
             sendEmailToMany(emails);
             StringSender sender = new StringSender();
             sender.setKey("Email");
@@ -83,10 +83,33 @@ public class EmailController {
                 message.setSubject(alert.getName());
                 message.setText(alertType.getHeader() + "\n" + alertType.getSummary() + "\n" + alert.getDetailedMessage() + "\n" +
                         alertType.getFooter());
-                mailSender.send(message);
+//                mailSender.send(message);
             }
         }catch (Exception ex){
 
+        }
+    }
+
+    public void sendEmailViaProfile(Profile profile) {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        try {
+
+            mailSender.setHost(emailConfig.getHost());
+            mailSender.setPort(emailConfig.getPort());
+            mailSender.setUsername(emailConfig.getUsername());
+            mailSender.setPassword(emailConfig.getPassword());
+
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("RxWave@galaxe.com");
+            message.setTo(profile.getUsername());
+            message.setSubject("Rx Wave Account Confirmation");
+            String text = "Hello " + profile.getName() + ",\n \t An account was created for you for RxWave. Your password is "+profile.getPassword()+". You may access the site by going to https://rxwave.galaxe.com and logging in with this email. If you have not requested or created this account, " +
+                    "please contact rxWave@galaxe.com. \n Have a great day, \n RxWave";
+            message.setText(text);
+            mailSender.send(message);
+        }catch (Exception ex){
+            ex.printStackTrace();
         }
     }
 }

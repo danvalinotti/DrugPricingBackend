@@ -10,5 +10,5 @@ import java.util.List;
 @Repository
 public interface DrugRequestRepository extends JpaRepository<DrugRequest,Integer> {
 
-    List<DrugRequest> findByDrugIdAndProgramId(int drugId, int i);
+    List<DrugRequest> findByDrugIdAndProgramId(int drugId, Integer i);
 }

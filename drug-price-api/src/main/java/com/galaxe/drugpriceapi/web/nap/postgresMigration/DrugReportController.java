@@ -34,6 +34,8 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.Key;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -83,7 +85,7 @@ public class DrugReportController {
     //------------------------------------------------------------------
     @GetMapping(value = "/report/create")
     public void createReport() throws Throwable {
-        Report lastReport = reportRepository.findFirstByOrderByIdDesc();
+        Report lastReport = reportRepository.findFirstByOrderByTimestampDesc();
 
         Report newReport = new Report();
         newReport.setTimestamp(new Date());
@@ -99,7 +101,16 @@ public class DrugReportController {
     public void addToLastReport(@RequestBody RequestObject requestObject){
 
         try {
-            addDrugToReport(requestObject,reportRepository.findFirstByOrderByIdDesc());
+            if(reportRepository.findFirstByOrderByTimestampDesc()==null){
+                Report r = new Report();
+                r.setTimestamp(new Date());
+                r.setDrugCount(0);
+                r = reportRepository.save(r);
+                addDrugToReport(requestObject,r);
+            }else{
+                addDrugToReport(requestObject,reportRepository.findFirstByOrderByTimestampDesc());
+            }
+
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -281,9 +292,9 @@ public class DrugReportController {
             row.add(element.getName());
             row.add(element.getDrugType());
             row.add(element.getDosageStrength());
-
             row.add(element.getQuantity());
             row.add(element.getZipcode());
+
             row.add("$"+element.getPrograms().get(0).getPrice());
             row.add("$"+element.getPrograms().get(1).getPrice());
             row.add("$"+element.getPrograms().get(2).getPrice());
@@ -304,10 +315,11 @@ public class DrugReportController {
         List<List<String>> rows = new ArrayList<>();
         List<String> data0 = new ArrayList<>();
         data0.add("Drug Name");
-        data0.add("Drug Type");
+        data0.add("Drug NDC");
+        data0.add("Drug GSN");
         data0.add("Dosage Strength");
         data0.add("Quantity");
-        data0.add("Zip Code");
+
         data0.add("InsideRx Price");
         data0.add("U.S Pharmacy Card Price");
         data0.add("WellRx Price");
@@ -318,20 +330,30 @@ public class DrugReportController {
         data0.add("Difference Price");
         rows.add(data0);
         for (ReportRow reportRow:this.reportRowRepository.exportReport(reportId)) {
+
             List<String> data = new ArrayList<>();
             data.add(reportRow.name);
-            data.add("");
+            data.add(reportRow.getNdc());
+            data.add(reportRow.getGsn());
+
             data.add(reportRow.dosage_strength);
             data.add(reportRow.quantity);
-            data.add("");
-            data.add(reportRow.insiderx_price);
-            data.add(reportRow.pharm_price);
-            data.add(reportRow.wellrx_price);
-            data.add(reportRow.medimpact_price);
-            data0.add(reportRow.singlecare_price);
-            data.add(reportRow.blink_price);
-            data.add("");
-            data.add("");
+            try{data.add(new BigDecimal(reportRow.insiderx_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.pharm_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.wellrx_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.medimpact_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.singlecare_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.blink_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.recommended_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
             rows.add(data);
         }
         return exportManualReport(rows);
@@ -372,6 +394,7 @@ public class DrugReportController {
 
         }
 
+
     }
 
     @PostMapping(value = "/report/drug/add")
@@ -396,16 +419,9 @@ public class DrugReportController {
               prices =  drugMasterController.getDetails(requestObject,drugMaster).getPrices();
            }catch (Exception e){
            }
-            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Prices size"+ prices.size());}
 
             for (Price price: prices) {
                 try {
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6") && price.getProgramId() == 2) {
-                        System.out.println("WELL RX PRICE NOW ");
-                    }
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
-                        System.out.println("GOT price2");
-                    }
 
                     Report_Drugs report_drug = new Report_Drugs();
                     try {
@@ -417,22 +433,13 @@ public class DrugReportController {
                     }
 
                     Price newPrice = priceRepository.save(price);
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
-                        System.out.println("Saved Price");
-                    }
 
                     report_drug.setPriceId(newPrice.getId());
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
-                        System.out.println("set id ");
-                    }
+
                     report_drug.setReportId(report2.getId());
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
-                        System.out.println("setreport id ");
-                    }
+
                     report_drugs.add(report_drug);
-                    if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
-                        System.out.println("Added To report Drugs");
-                    }
+
                 }catch (Exception ex){
 
                 }
@@ -533,9 +540,13 @@ public class DrugReportController {
         }
         if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Saved Report Drugs");}
 
-        Report report = reportRepository.findById(report2.getId()).get();
-        report.setDrugCount(report.getDrugCount() + 1);
-        reportRepository.save(report);
+//        Report report = reportRepository.findById(report2.getId()).get();
+        try {
+            report2.setDrugCount(report2.getDrugCount() + 1);
+        }catch (Exception ex){
+            report2.setDrugCount(1);
+        }
+        reportRepository.save(report2);
 
         return report_drugs;
 
@@ -555,7 +566,7 @@ public class DrugReportController {
 
         int forward = 0;
         try {
-            int reportId = reportRepository.findFirstByOrderByIdDesc().getId();
+
             Report newReport = new Report();
             newReport.setTimestamp(new Date());
             newReport.setDrugCount(0);
@@ -614,9 +625,9 @@ public class DrugReportController {
             return newReport;
         } catch (Exception e) {
             e.printStackTrace();
-            if (forward == 0) {
-                masterListTestController.addToMasterList();
-            }
+//            if (forward == 0) {
+//                masterListTestController.addToMasterList();
+//            }
             Alert alert3 = new Alert();
             alert3.setDetailedMessage("Batch for Report has failed");
             alert3.setName("Report Batch Failed");
@@ -717,6 +728,14 @@ public class DrugReportController {
     }
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
+        PrintStream fileStream = null;
+//        try {
+//            fileStream = new PrintStream("api_log.txt");
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//
+//        System.setOut(fileStream);
         Workbook workbook = new XSSFWorkbook();
 
         CreationHelper createHelper = workbook.getCreationHelper();
@@ -738,6 +757,8 @@ public class DrugReportController {
             cell.setCellStyle(headerCellStyle);
         }
         int count = 0;
+        System.out.println("Starting rows");
+//        System.out.println(rows);
         for (List<String> row : rows) {
             if (count == 0) {
 
@@ -754,6 +775,7 @@ public class DrugReportController {
             }
             count++;
         }
+        System.out.println("Rows finished");
         for (int i = 0; i < rows.get(0).size(); i++) {
             sheet.autoSizeColumn(i);
 
@@ -773,7 +795,7 @@ public class DrugReportController {
         }
         HttpHeaders headers = new HttpHeaders();
         File file = new File("poi-generated-file.xlsx");
-        file.length();
+        System.out.println(file.length());
         //we are saying we are getting an attachment and what to name it
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "poi-generated-file.xlsx");
         return ResponseEntity.ok()

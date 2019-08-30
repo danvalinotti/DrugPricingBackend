@@ -59,6 +59,8 @@ public class DrugMasterController {
     @Autowired
     APIClient3 apiService3;
 
+    @Autowired
+    DrugRequestRepository drugRequestRepository;
 
 
     //DRUGS
@@ -70,6 +72,28 @@ public class DrugMasterController {
     @GetMapping("/drugmaster/get/all")
     private List<DrugMaster> getDrugMasters() {
         return drugMasterRepository.findAll();
+    }
+    @GetMapping("/drugmaster/get/id/{id}")
+    private DrugMaster getById(@PathVariable String id) {
+        Integer newId = Integer.parseInt(id);
+
+        return drugMasterRepository.findById(newId).get();
+    }
+    @GetMapping("/drugmaster/update/gsn")
+    private List<DrugMaster> updateGSNs() {
+        List<DrugMaster > drugMasters = drugMasterRepository.findAll();
+        for (DrugMaster drugMaster:drugMasters ) {
+            String gsn ="";
+            try {
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 2).get(0);
+                gsn = drugRequest.getGsn();
+                drugMaster.setGsn(gsn);
+                drugMasterRepository.save(drugMaster);
+            }catch (Exception ex){
+
+            }
+        }
+        return drugMasters;
     }
     @GetMapping("/remove/duplicates")
     public void removeDuplicates() {

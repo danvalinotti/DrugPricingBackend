@@ -24,13 +24,17 @@ public class DrugRequestController {
     public List<DrugRequest> getAllReportDrugs() {
         return drugRequestRepository.findAll();
     }
+    @PostMapping(value = "/request/create")
+    public DrugRequest createRequest(@RequestBody DrugRequest drugRequest) {
 
+        return drugRequestRepository.save(drugRequest);
+    }
     @PostMapping(value = "/request/edit")
     public DrugRequest editRequest(@RequestBody DrugRequest drugRequest) {
         DrugRequest newDrugRequest = drugRequestRepository.findById(drugRequest.getId()).get();
         newDrugRequest.setDrugName(drugRequest.getDrugName());
         newDrugRequest.setGsn(drugRequest.getGsn());
-        newDrugRequest.setDrugId(drugRequest.getDrugId());
+//        newDrugRequest.setDrugId(drugRequest.getDrugId());
         newDrugRequest.setZipcode(drugRequest.getZipcode());
         newDrugRequest.setQuantity(drugRequest.getQuantity());
         newDrugRequest.setNdc(drugRequest.getNdc());

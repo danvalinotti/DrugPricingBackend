@@ -13,7 +13,7 @@ import java.util.List;
 public interface ReportRepository extends JpaRepository<Report,Integer> {
 
 
-    Report findFirstByOrderByIdDesc();
+    Report findFirstByOrderByTimestampDesc();
 
     @Query(value = "SELECT p " +
             " FROM report_drugs RIGHT OUTER JOIN price p " +

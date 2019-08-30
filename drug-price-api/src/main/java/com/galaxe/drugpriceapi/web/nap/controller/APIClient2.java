@@ -92,10 +92,10 @@ public class APIClient2 {
                 }
 
             }else{
-
+                System.out.println("ELSE STATEMENT");
             }
         }catch (Exception ex){
-
+            ex.printStackTrace();
         }
 
         List<Strengths> strengths = null;
@@ -106,7 +106,8 @@ public class APIClient2 {
                 .replace("PUMP", "")
                 .replace("VAGINAL","")
                 .replace(" PEN","")
-                .replace("PATCH","").intern();
+                .replace("PATCH","")
+                .replace("HYDROCHLORIDE", "HCL").intern();
         requestedDrug = requestedDrug.trim();
         String drugName = requestObject.getDrugName();
 

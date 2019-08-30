@@ -16,6 +16,7 @@ import com.galaxe.drugpriceapi.web.nap.postgresMigration.PriceRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.ReportRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.RandomPassword;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.DrugBrandInfo;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
@@ -221,7 +222,7 @@ public class PriceController {
     //Getting the drug prices for a particular drug
     @PostMapping("/getPharmacyPrice")
     public MongoEntity getPharmacyList(@RequestBody RequestObject requestObject) throws Throwable {
-
+        String drugName = requestObject.getDrugName();
         if (flag) {
             flag = false;
             setScheduledFutureJob();
@@ -245,8 +246,21 @@ public class PriceController {
 
 
             d = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
-            prices = priceRepository.findRecentPricesByDrugId(d.getId(), reportRepository.findFirstByOrderByIdDesc().getId());
+            System.out.println("NEWEST REPORT ID "+reportRepository.findFirstByOrderByTimestampDesc().getId());
+            prices = priceRepository.findRecentPricesByDrugId(d.getId(), reportRepository.findFirstByOrderByTimestampDesc().getId());
             mongoEntity.setRecommendedDiff("0.00");
+            List<Integer> programIds = new ArrayList<>();
+            int count = 0;
+            for (Price p : prices) {
+                if(!programIds.contains(p.getProgramId())){
+
+                    programIds.add(p.getDrugDetailsId());
+                }else{
+                    System.out.println("REMOVE");
+                    prices.remove(count) ;
+                }
+                count++;
+            }
             System.out.println(prices.size());
             String average = getAverage(prices);
             mongoEntity.setAverage(average);
@@ -295,6 +309,11 @@ public class PriceController {
             mongoEntity.setZipcode(requestObject.getZipcode());
 //            mongoEntity.setDosageUOM(requestObject.get);
             mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
+            mongoEntity.setAverage(prices.get(0).getAveragePrice()+"");
+            WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+requestObject.getDrugName().toLowerCase().replace(" ", "-")+"/details?locale=en-US");
+            DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
+
+            mongoEntity.setDescription(description.getDescription());
             System.out.println("FOUND PRICE FROM DATABASE");
             return mongoEntity;
         } catch (Exception ex) {
@@ -304,6 +323,10 @@ public class PriceController {
 
 
         MongoEntity finalDrug = getFinalDrug(requestObject);
+        WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+drugName.toLowerCase().replace(" ", "-")+"/details?locale=en-US");
+        DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
+
+        finalDrug.setDescription(description.getDescription());
         System.out.println("FOUND PRICE FROM API");
         return finalDrug;
     }
@@ -414,8 +437,7 @@ public class PriceController {
         start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
-        if (requestObject.getDrugName().equalsIgnoreCase("Climara")) {
-        }
+
         CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
         CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
@@ -468,6 +490,25 @@ public class PriceController {
         return m;
 
     }
+    public void  createDrugRequests(RequestObject requestObject){
+        Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
+        String brandType = getBrandIndicator(requestObject).intern();
+
+
+        try {
+            CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
+        CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
+        CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
+        CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
+        CompletableFuture<PharmacyPricings> goodRxFuture = apiService.getGoodRxPrices(requestObject);
+
+    }
 
 
     private String getDrugInfoFromInsideRx(WebClient webClient) {
@@ -481,7 +522,7 @@ public class PriceController {
 
 
     public String getBrandIndicator(RequestObject requestObject) {
-        List<DrugBrandInfo> drugBrandInfos = getDrugInfoFromUs(requestObject.getDrugName());
+        List<DrugBrandInfo> drugBrandInfos = getDrugInfoFromUs(requestObject.getDrugName().replace("Hydrochloride", "HCL"));
         StringBuilder sb = new StringBuilder();
         drugBrandInfos.forEach(brand -> {
 
@@ -491,6 +532,9 @@ public class PriceController {
             }
 
         });
+        if(sb.toString().equals("") || sb.toString() == null){
+            return G;
+        }
         return sb.toString();
     }
 

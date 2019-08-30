@@ -10,17 +10,16 @@ import com.galaxe.drugpriceapi.web.nap.controller.PriceController;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.PricesAndMaster;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Profile;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.*;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
+import com.google.gson.Gson;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.security.Key;
 import java.util.ArrayList;
@@ -42,14 +41,15 @@ public class DrugProfileController {
     @PostMapping(value = "/admin/create/user")
     public Profile adminCreateUser(@RequestBody Profile profile)  {
 //        if(profileRepository.findByUsername(profile.getUsername()).size() != 0){
-            String newPassword = BCrypt.hashpw("Galaxy123",BCrypt.gensalt());
+
+//            String newPassword = BCrypt.hashpw("Galaxy123",BCrypt.gensalt());
             try {
                 profile.setUsername(profile.getUsername().trim());
             }catch (Exception ex){
 
             }
             profile.setUsername(profile.getUsername().trim());
-            profile.setPassword(newPassword);
+//            profile.setPassword(newPassword);
             profile.setRole("created"+profile.getRole());
             return profileRepository.save(profile);
 //        }else{
@@ -88,5 +88,22 @@ public class DrugProfileController {
             return profile;
         }
 
+    }
+
+    @GetMapping("/gen/password")
+    public RandomPassword randomPassword(){
+        RandomPassword pass= new RandomPassword();
+        List<RandomPassword> passes = new ArrayList<>();
+        try {
+            WebClient webClient = WebClient.create("https://passwordwolf.com/api/?special=off");
+            passes = webClient.get().exchange().flatMapMany(clientResponse -> clientResponse.bodyToFlux(RandomPassword.class)).collectList().block();
+            return passes.get(0);
+        }catch (Exception ex){
+            ex.printStackTrace();
+            pass.setPassword("Galaxy123");
+        }
+
+
+        return pass;
     }
 }
