@@ -12,6 +12,7 @@ import com.galaxe.drugpriceapi.web.nap.masterList.MasterList;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.goodRx.GoodRxResponse;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.*;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
@@ -71,12 +72,11 @@ public class DrugMasterController {
 
     @GetMapping("/drugmaster/get/all")
     private List<DrugMaster> getDrugMasters() {
-        return drugMasterRepository.findAll();
+        return drugMasterRepository.getAllWithoutZipCode();
     }
     @GetMapping("/drugmaster/get/id/{id}")
     private DrugMaster getById(@PathVariable String id) {
         Integer newId = Integer.parseInt(id);
-
         return drugMasterRepository.findById(newId).get();
     }
     @GetMapping("/drugmaster/update/gsn")
@@ -99,7 +99,7 @@ public class DrugMasterController {
     public void removeDuplicates() {
       List<DrugMaster> allDrugs = drugMasterRepository.findAll();
         for (DrugMaster drug: allDrugs) {
-            if(drugMasterRepository.findAllByFields(drug.getNdc(),drug.getQuantity()).size()>1){
+            if(drugMasterRepository.findAllByFields(drug.getNdc(),drug.getQuantity(),drug.getZipCode()).size()>1){
                 drugMasterRepository.delete(drug);
             }
 
@@ -140,7 +140,9 @@ public class DrugMasterController {
     public PricesAndMaster getDetails(RequestObject requestObject, DrugMaster drugMaster) throws Throwable {
 
         long start = System.currentTimeMillis();
-        Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
+        Map<String, String> longitudeLatitude = new HashMap<>();
+        longitudeLatitude.put("longitude",requestObject.getLongitude());
+        longitudeLatitude.put("latitude", requestObject.getLatitude());
 
         start = System.currentTimeMillis();
         String brandType = priceController.getBrandIndicator(requestObject).intern();
@@ -156,24 +158,59 @@ public class DrugMasterController {
         start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
-        if(requestObject.getDrugName().equalsIgnoreCase("Climara")){
+
+
+            CompletableFuture<List<InsideRx>> inside = null;
+            try {
+                inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
+            }catch (Exception ex){
+                inside = CompletableFuture.completedFuture(new ArrayList<>());
+            }
+            CompletableFuture<List<DrugNAP2>> usPharmacy = null;
+            try {
+                usPharmacy = apiService2.constructUsPharmacy(requestObject);
+            }catch (Exception ex){
+            usPharmacy = CompletableFuture.completedFuture(new ArrayList<>());
+            }
+
+            CompletableFuture<List<Drugs>> wellRxFuture  = null;
+            try {
+                wellRxFuture =   apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
+            }catch (Exception ex){
+                wellRxFuture = CompletableFuture.completedFuture(new ArrayList<>());
+            }
+            CompletableFuture<LocatedDrug> medImpactFuture  = null;
+            try {
+                medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
+            }catch (Exception ex){
+                medImpactFuture = CompletableFuture.completedFuture(new LocatedDrug());
+            }
+            CompletableFuture<PharmacyPricings> singleCareFuture  = null;
+            try {
+                singleCareFuture =   apiService.getSinglecarePrices(requestObject);
+            }catch (Exception ex){
+                singleCareFuture = CompletableFuture.completedFuture(new PharmacyPricings());
+            }
+
+        CompletableFuture<GoodRxResponse> goodRxFuture  = null;
+        try {
+            goodRxFuture =   apiService.getGoodRxPrices(requestObject);
+        }catch (Exception ex){
+            goodRxFuture = CompletableFuture.completedFuture(new GoodRxResponse());
         }
-        CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
-        CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
-        CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
-        CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
-        CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
-
-        blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
-
-
-        //Wait until they are all done
-        if (blinkFuture != null)
-            CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture, blinkFuture).join();
-        else {
-            CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
-            //   start = System.currentTimeMillis();
+        try {
+            blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
+        }catch (Exception ex){
+            blinkFuture = CompletableFuture.completedFuture(new Blink());
         }
+
+            //Wait until they are all done
+            if (blinkFuture != null)
+                CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture,goodRxFuture, blinkFuture).join();
+            else {
+                CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture,goodRxFuture).join();
+                //   start = System.currentTimeMillis();
+            }
 
 
         //List and obj to store future result
@@ -182,14 +219,31 @@ public class DrugMasterController {
         List<Drugs> wellRx = wellRxFuture.get();
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
-        if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){
-            System.out.println("DRUG MASTER GENOTROPIN 1.6");
-            try {
-                System.out.println(wellRx.get(0).getPrice());
-            }catch (Exception ex){
-                System.out.println("ERROR");
-            }
 
+        GoodRxResponse goodRxPrice;
+        try {
+            if(requestObject.getDrugName().toUpperCase().equals("ATORVASTATIN CALCIUM")) {
+                System.out.println("ACYCLOVIR");
+            }
+            if(requestObject.getDrugName().toUpperCase().equals("CIPROFLOXACIN HCL")) {
+                System.out.println("ACYCLOVIR");
+            }
+            if(requestObject.getDrugName().toUpperCase().equals("CIPROFLOXACIN HYDROCHLORIDE")) {
+                System.out.println("ACYCLOVIR");
+            }
+            if(requestObject.getDrugName().toUpperCase().equals("CITALOPRAM HYDROBROMIDE")) {
+                System.out.println("ACYCLOVIR");
+            }
+            if(requestObject.getDrugName().toUpperCase().equals("CLOMIPHENE CITRATE")) {
+                System.out.println("ACYCLOVIR");
+            }
+            if(requestObject.getDrugName().toUpperCase().equals("ERGOCALCIFEROL")) {
+                System.out.println("ACYCLOVIR");
+            }
+              goodRxPrice  =goodRxFuture.get();
+
+        }catch (Exception ex){
+            goodRxPrice = new GoodRxResponse();
         }
         Blink blink = null;
         if (blinkFuture != null)
@@ -206,6 +260,7 @@ public class DrugMasterController {
             p.setPharmacy(insideRx.getPrices().get(0).getPharmacy().getName());
             p.setDrugDetailsId(drugMaster.getId());
             p.setProgramId(0);
+            p.setCreatedat(new Date());
         } catch (Exception e) {
             p = null;
         }
@@ -217,6 +272,7 @@ public class DrugMasterController {
             p1.setPharmacy(usPharm.getPriceList().get(0).getPharmacy().getPharmacyName());
             p1.setProgramId(1);
             p1.setDrugDetailsId(drugMaster.getId());
+            p1.setCreatedat(new Date());
         } catch (Exception e) {
             p1 = null;
         }
@@ -231,6 +287,7 @@ public class DrugMasterController {
             p2.setPharmacy(well.getPharmacyName());
             if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT pharmacy");}
             p2.setProgramId(2);
+            p2.setCreatedat(new Date());
             if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT program");}
             p2.setDrugDetailsId(drugMaster.getId());
             if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("GOT id");}
@@ -246,6 +303,7 @@ public class DrugMasterController {
             p3.setPharmacy(locatedDrug.getPharmacy().getName());
             p3.setProgramId(3);
             p3.setDrugDetailsId(drugMaster.getId());
+            p3.setCreatedat(new Date());
         } catch (Exception e) {
             p3 = null;
         }
@@ -255,17 +313,35 @@ public class DrugMasterController {
             p4.setPharmacy(singleCarePrice.getPharmacy().getName());
             p4.setProgramId(4);
             p4.setDrugDetailsId(drugMaster.getId());
+            p4.setCreatedat(new Date());
         } catch (Exception e) {
             p4 = null;
         }
         Price p5 = new Price();
         try {
             p5.setPrice(Double.parseDouble(blink.getPrice().getLocal().getRaw_value()));
+
             p5.setPharmacy(blink.getResults().getName());
             p5.setProgramId(5);
             p5.setDrugDetailsId(drugMaster.getId());
+            p5.setCreatedat(new Date());
         } catch (Exception e) {
             p5 = null;
+        }
+        Price p6 = new Price();
+        try {
+
+            try {
+                p6.setPrice(goodRxPrice.getResults().get(0).getPrices().get(0).getPrice());
+            }catch (Exception ex){
+
+            }
+            p6.setPharmacy(goodRxPrice.getResults().get(0).getPharmacy().getName());
+            p6.setProgramId(6);
+            p6.setDrugDetailsId(drugMaster.getId());
+            p6.setCreatedat(new Date());
+        } catch (Exception e) {
+            p6 = null;
         }
         prices.add(p);
         prices.add(p1);
@@ -273,10 +349,11 @@ public class DrugMasterController {
         prices.add(p3);
         prices.add(p4);
         prices.add(p5);
-
+        prices.add(p6);
         if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("B4 Prices size"+ prices.size());}
 
         pricesAndMaster.setDrugMaster(drugMaster);
+
         pricesAndMaster.setPrices(prices);
 
         return pricesAndMaster;

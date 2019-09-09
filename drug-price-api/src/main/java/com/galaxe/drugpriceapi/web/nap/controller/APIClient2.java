@@ -65,53 +65,54 @@ public class APIClient2 {
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<List<Drugs>> getWellRxDrugInfo(RequestObject requestObject, Map<String, String> longitudeLatitude, String brand_indicator) {
         int drugId = 0;
-
         try {
+            try {
 
-            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+                drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
 
-            List<DrugRequest>drugRequests= drugRequestRepository.findByDrugIdAndProgramId(drugId,2);
-            if(drugRequestRepository.findByDrugIdAndProgramId(drugId,2).size() != 0){
+                List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2);
+                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() != 0) {
 
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId,2).get(0);
-                if(drugRequest.getDrugName() == null || drugRequest.getDrugName().equals("")){
-                    drugRequest.setDrugName(requestObject.getDrugName());
-                    drugRequestRepository.save(drugRequest);
+                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
+                    if (drugRequest.getDrugName() == null || drugRequest.getDrugName().equals("")) {
+                        drugRequest.setDrugName(requestObject.getDrugName());
+                        drugRequestRepository.save(drugRequest);
+                    }
+                    requestObject.setGSN(drugRequest.getGsn());
+                    String wellRxSpecificDrugResponseStr = getWellRxResult(drugRequest);
+                    List<Drugs> wellRxSpecificDrugs = gson.fromJson(wellRxSpecificDrugResponseStr, WellRx.class).getDrugs();
+                    if (!CollectionUtils.isEmpty(wellRxSpecificDrugs)) {
+                        if (constructWellRxComparator == null)
+                            constructWellRxComparator = constructWellRxComparator();
+
+                        Collections.sort(wellRxSpecificDrugs, constructWellRxComparator);
+                        DrugMaster updatedDrug = drugMasterRepository.findById(drugId).get();
+                        updatedDrug.setGsn(wellRxSpecificDrugs.get(0).getGSN());
+                        drugMasterRepository.save(updatedDrug);
+                        return CompletableFuture.completedFuture(wellRxSpecificDrugs);
+                    }
+
+                } else {
+                    System.out.println("ELSE STATEMENT");
                 }
-                String wellRxSpecificDrugResponseStr = getWellRxResult(drugRequest);
-                List<Drugs> wellRxSpecificDrugs = gson.fromJson(wellRxSpecificDrugResponseStr, WellRx.class).getDrugs();
-                if (!CollectionUtils.isEmpty(wellRxSpecificDrugs)) {
-                    if (constructWellRxComparator == null)
-                        constructWellRxComparator = constructWellRxComparator();
-
-                    Collections.sort(wellRxSpecificDrugs, constructWellRxComparator);
-                    DrugMaster updatedDrug = drugMasterRepository.findById(drugId).get();
-                    updatedDrug.setGsn(wellRxSpecificDrugs.get(0).getGSN());
-                    drugMasterRepository.save(updatedDrug);
-                    return CompletableFuture.completedFuture(wellRxSpecificDrugs);
-                }
-
-            }else{
-                System.out.println("ELSE STATEMENT");
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
-        }catch (Exception ex){
-            ex.printStackTrace();
-        }
 
-        List<Strengths> strengths = null;
-        // DrugMaster drugMaster2 = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(),requestObject.getQuantity()).get(0);
-        String requestedDrug = requestObject.getDrugName().toUpperCase()
-                .replace("/", "-")
-                .replace("WITH PUMP", "")
-                .replace("PUMP", "")
-                .replace("VAGINAL","")
-                .replace(" PEN","")
-                .replace("PATCH","")
-                .replace("HYDROCHLORIDE", "HCL").intern();
-        requestedDrug = requestedDrug.trim();
-        String drugName = requestObject.getDrugName();
+            List<Strengths> strengths = null;
+            // DrugMaster drugMaster2 = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(),requestObject.getQuantity()).get(0);
+            String requestedDrug = requestObject.getDrugName().toUpperCase()
+                    .replace("/", "-")
+                    .replace("WITH PUMP", "")
+                    .replace("PUMP", "")
+                    .replace("VAGINAL", "")
+                    .replace(" PEN", "")
+                    .replace("PATCH", "")
+                    .replace("HYDROCHLORIDE", "HCL").intern();
+            requestedDrug = requestedDrug.trim();
+            String drugName = requestObject.getDrugName();
 
-        requestObject.setDrugName(requestedDrug);
+            requestObject.setDrugName(requestedDrug);
 //        if (wellRxDrugGSNMap.containsKey(requestedDrug)) {
 //
 //            strengths = wellRxDrugGSNMap.get(requestedDrug);
@@ -120,260 +121,273 @@ public class APIClient2 {
 //            String str = getWellRxOutputString(requestObject, longitudeLatitude).intern();
 //            requestObject.setDrugName(drugName);
 //            WellRx wellRxFirstAPIResp = gson.fromJson(str, WellRx.class);
+            WellRx wellRxFirstAPIResp = new WellRx();
+            try {
+                String str = getWellRxOutputString4(requestObject, longitudeLatitude).intern();
+                requestObject.setDrugName(drugName);
+                wellRxFirstAPIResp = gson.fromJson(str, WellRx.class);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                System.out.println("FailedRequestName:"+requestObject.getDrugName());
+                System.out.println("FailedRequestDosage:"+requestObject.getDosageStrength());
+                System.out.println("FailedRequestGSN:"+requestObject.getGSN());
 
-        String str = getWellRxOutputString4(requestObject, longitudeLatitude).intern();
-        requestObject.setDrugName(drugName);
-        WellRx wellRxFirstAPIResp = gson.fromJson(str, WellRx.class);
-        String dose = requestObject.getDosageStrength().toUpperCase();
-        if(dose.contains("PUMP")){
-            dose = "PUMP";
-        }
-        if (wellRxFirstAPIResp.getForms().size() > 0) {
-            // wellRxFirstAPIResp
+                System.out.println("FailedRequestQuantity:"+requestObject.getQuantity());
+                System.out.println("FailedRequestBrand:"+requestObject.getDrugType());
+            }
+            String dose = requestObject.getDosageStrength().toUpperCase();
+            if (dose.contains("PUMP")) {
+                dose = "PUMP";
+            }
+            if (wellRxFirstAPIResp.getForms().size() > 0) {
+                // wellRxFirstAPIResp
 
-            for (int i = 0; i < wellRxFirstAPIResp.getForms().size(); i++) {
+                for (int i = 0; i < wellRxFirstAPIResp.getForms().size(); i++) {
 
-                String drugForm = wellRxFirstAPIResp.getForms().get(i).getForm().toUpperCase();
-                System.out.println("DRUG FORM BEFORE "+drugForm);
-                try {
-                    drugForm = drugForm.replace(drugForm.substring(drugForm.indexOf("("), drugForm.indexOf(")")+1),"");
-                    drugForm = drugForm.trim();
-
-                    System.out.println("DRUG FORM"+drugForm);
-                }catch(Exception ex){
-
-                }
-
-                if(drugForm.contains("PUMP")){
-                    drugForm = "PUMP";
-                }
-                System.out.println(dose);
-                System.out.println("DRUG FORM"+drugForm);
-
-                if(dose.contains(drugForm)){
-                    System.out.println("HERE");
-
-                requestObject.setGSN(wellRxFirstAPIResp.getForms().get(i).getGSN());
-                String str2 = getWellRxOutputString2(requestObject, longitudeLatitude, brand_indicator).intern();
-
-                WellRx wellRxFirstAPIResp2 = gson.fromJson(str2, WellRx.class);
-
-                CompletableFuture<List<Drugs>> result = getSpecWellRxDrug(wellRxFirstAPIResp2, requestedDrug, new ArrayList<>(), requestObject, longitudeLatitude, brand_indicator);
-                if (result.join().size() != 0) {
-
-                    //INSERT DRUGREQUESET
+                    String drugForm = wellRxFirstAPIResp.getForms().get(i).getForm().toUpperCase();
+                    System.out.println("DRUG FORM BEFORE " + drugForm);
                     try {
-                        drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
-                        if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
-                            DrugRequest drugRequest = new DrugRequest();
-                            drugRequest.setProgramId(2);
-                            Drugs savedDrug = result.join().get(0);
-                            drugRequest.setGsn(savedDrug.getGSN());
-                            drugRequest.setLatitude(longitudeLatitude.get("latitude"));
-                            drugRequest.setLongitude(longitudeLatitude.get("longitude"));
-                            drugRequest.setQuantity(savedDrug.getQty());
-                            drugRequest.setBrandIndicator(brand_indicator);
-                            drugRequest.setDrugName(savedDrug.getDrugName());
-                            drugRequestRepository.save(drugRequest);
-                        }else{
-                            DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
-                            drugRequest.setProgramId(2);
-                            Drugs savedDrug = result.join().get(0);
-                            drugRequest.setGsn(savedDrug.getGSN());
-                            drugRequest.setLatitude(longitudeLatitude.get("latitude"));
-                            drugRequest.setLongitude(longitudeLatitude.get("longitude"));
-                            drugRequest.setQuantity(savedDrug.getQty());
-                            drugRequest.setBrandIndicator(brand_indicator);
-                            drugRequest.setDrugName(savedDrug.getDrugName());
-                            drugRequestRepository.save(drugRequest);
-                        }
+                        drugForm = drugForm.replace(drugForm.substring(drugForm.indexOf("("), drugForm.indexOf(")") + 1), "");
+                        drugForm = drugForm.trim();
+
+                        System.out.println("DRUG FORM" + drugForm);
                     } catch (Exception ex) {
 
                     }
-                    return result;
+
+                    if (drugForm.contains("PUMP")) {
+                        drugForm = "PUMP";
+                    }
+                    System.out.println(dose);
+                    System.out.println("DRUG FORM" + drugForm);
+
+                    if (dose.contains(drugForm)) {
+                        System.out.println("HERE");
+
+                        requestObject.setGSN(wellRxFirstAPIResp.getForms().get(i).getGSN());
+                        String str2 = getWellRxOutputString2(requestObject, longitudeLatitude, brand_indicator).intern();
+
+                        WellRx wellRxFirstAPIResp2 = gson.fromJson(str2, WellRx.class);
+
+                        CompletableFuture<List<Drugs>> result = getSpecWellRxDrug(wellRxFirstAPIResp2, requestedDrug, new ArrayList<>(), requestObject, longitudeLatitude, brand_indicator);
+                        if (result.join().size() != 0) {
+
+                            //INSERT DRUGREQUESET
+                            try {
+                                drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
+                                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
+                                    DrugRequest drugRequest = new DrugRequest();
+                                    drugRequest.setProgramId(2);
+                                    Drugs savedDrug = result.join().get(0);
+                                    drugRequest.setGsn(savedDrug.getGSN());
+                                    drugRequest.setLatitude(longitudeLatitude.get("latitude"));
+                                    drugRequest.setLongitude(longitudeLatitude.get("longitude"));
+                                    drugRequest.setQuantity(savedDrug.getQty());
+                                    drugRequest.setBrandIndicator(brand_indicator);
+                                    drugRequest.setDrugName(requestObject.getDrugName());
+                                    drugRequestRepository.save(drugRequest);
+                                } else {
+                                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
+                                    drugRequest.setProgramId(2);
+                                    Drugs savedDrug = result.join().get(0);
+                                    drugRequest.setGsn(savedDrug.getGSN());
+                                    drugRequest.setLatitude(longitudeLatitude.get("latitude"));
+                                    drugRequest.setLongitude(longitudeLatitude.get("longitude"));
+                                    drugRequest.setQuantity(savedDrug.getQty());
+                                    drugRequest.setBrandIndicator(brand_indicator);
+                                    drugRequest.setDrugName(savedDrug.getDrugName());
+                                    drugRequestRepository.save(drugRequest);
+                                }
+                            } catch (Exception ex) {
+
+                            }
+                            return result;
+                        }
+                    }
                 }
-                }
+
             }
 
-        }
 
+            if (!CollectionUtils.isEmpty(wellRxFirstAPIResp.getStrengths())) {
+                wellRxDrugGSNMap.put(requestedDrug, wellRxFirstAPIResp.getStrengths());
+                strengths = wellRxFirstAPIResp.getStrengths();
 
-        if (!CollectionUtils.isEmpty(wellRxFirstAPIResp.getStrengths())) {
-            wellRxDrugGSNMap.put(requestedDrug, wellRxFirstAPIResp.getStrengths());
-            strengths = wellRxFirstAPIResp.getStrengths();
-
-        } else {
-           // return CompletableFuture.completedFuture(drugs);
-        }
+            } else {
+                // return CompletableFuture.completedFuture(drugs);
+            }
 //        }
 
 
-        if (strengths != null) {
+            if (strengths != null) {
 
-            WellRxSpecifDrugPost obj = new WellRxSpecifDrugPost();
-            String dosageStrength = requestObject.getDosageStrength().toUpperCase().replace("/24" , "").trim().replaceAll("[A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|%|\\s]", "").trim().intern();
-            String dosageStrength2 = requestObject.getDosageStrength().toUpperCase().replace("/24" , "").trim().replaceAll("[A-Z|a-z|/|(|)|-|MG|MCG|ML|MG-MCG|%]", "").trim().intern();
+                WellRxSpecifDrugPost obj = new WellRxSpecifDrugPost();
+                String dosageStrength = requestObject.getDosageStrength().toUpperCase().replace("/24", "").trim().replaceAll("[A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|%|\\s]", "").trim().intern();
+                String dosageStrength2 = requestObject.getDosageStrength().toUpperCase().replace("/24", "").trim().replaceAll("[A-Z|a-z|/|(|)|-|MG|MCG|ML|MG-MCG|%]", "").trim().intern();
 
 
-            strengths.forEach(strength -> {
-                List<String> words = new ArrayList<>();
-                Collections.addAll(words, dosageStrength2.split("[-\\s\\\\]"));
-                words.removeIf(s -> {
-                    try {
-                        Double.parseDouble(s);
-                    } catch (Exception e) {
+                strengths.forEach(strength -> {
+                    List<String> words = new ArrayList<>();
+                    Collections.addAll(words, dosageStrength2.split("[-\\s\\\\]"));
+                    words.removeIf(s -> {
                         try {
-                            Integer.parseInt(s);
-                        } catch (Exception ex) {
-                            return true;
+                            Double.parseDouble(s);
+                        } catch (Exception e) {
+                            try {
+                                Integer.parseInt(s);
+                            } catch (Exception ex) {
+                                return true;
+                            }
+                            return false;
                         }
                         return false;
-                    }
-                    return false;
-                });
+                    });
 
-                String dosage = "";
-                if (requestObject.getDosageStrength().contains("day")) {
-                    dosage = strength.getStrength().toUpperCase().replaceAll("[-A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|-|%|\\s]", "").trim().intern();
-                    dosage = dosage.replace("24", "");
-                } else {
-                    dosage = strength.getStrength().toUpperCase().replaceAll("[-A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|-|%|\\s]", "").trim().intern();
-                }
+                    String dosage = "";
+                    if (requestObject.getDosageStrength().contains("day")) {
+                        dosage = strength.getStrength().toUpperCase().replaceAll("[-A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|-|%|\\s]", "").trim().intern();
+                        dosage = dosage.replace("24", "");
+                    } else {
+                        dosage = strength.getStrength().toUpperCase().replaceAll("[-A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|-|%|\\s]", "").trim().intern();
+                    }
 //                System.out.println("dosage"+dosage);
 //                System.out.println("Words"+words);
-                if (words.size() > 1) {
-                    try {
-                        if (Double.parseDouble(dosage) == Double.parseDouble(words.get(0))) {
+                    if (words.size() > 1) {
+                        try {
+                            if (Double.parseDouble(dosage) == Double.parseDouble(words.get(0))) {
 
-                            obj.setGSN(strength.getGSN());
-                            if (Double.parseDouble(words.get(1)) == Double.parseDouble(words.get(0)) / 1000) {
+                                obj.setGSN(strength.getGSN());
+                                if (Double.parseDouble(words.get(1)) == Double.parseDouble(words.get(0)) / 1000) {
 
-                            } else {
-                                requestObject.setQuantity(Double.parseDouble(words.get(1)));
+                                } else {
+                                    requestObject.setQuantity(Double.parseDouble(words.get(1)));
+                                }
+
+                                return;
                             }
+                        } catch (Exception ex) {
+                            if (dosage.equalsIgnoreCase(words.get(0))) {
+                                obj.setGSN(strength.getGSN());
+                                if (Double.parseDouble(words.get(1)) == Double.parseDouble(words.get(0)) / 1000) {
 
+                                } else {
+                                    requestObject.setQuantity(Double.parseDouble(words.get(1)));
+                                }
+
+                                return;
+                            }
+                        }
+                        try {
+                            if (Double.parseDouble(dosage) == Double.parseDouble(words.get(1))) {
+
+                                obj.setGSN(strength.getGSN());
+                                if (Double.parseDouble(words.get(0)) == Double.parseDouble(words.get(1)) / 1000) {
+
+                                } else {
+                                    requestObject.setQuantity(Double.parseDouble(words.get(0)));
+                                }
+                                return;
+                            }
+                        } catch (Exception ex) {
+                            if (dosage.equalsIgnoreCase(words.get(1))) {
+                                obj.setGSN(strength.getGSN());
+                                if (Double.parseDouble(words.get(0)) == Double.parseDouble(words.get(1)) / 1000) {
+
+                                } else {
+                                    requestObject.setQuantity(Double.parseDouble(words.get(0)));
+                                }
+                                return;
+                            }
+                        }
+                        if (dosage.equalsIgnoreCase(frontwards(words))) {
+                            obj.setGSN(strength.getGSN());
+                            //requestObject.setQuantity(Double.parseDouble(words.get(0)));
                             return;
                         }
-                    } catch (Exception ex) {
-                        if (dosage.equalsIgnoreCase(words.get(0))) {
+                        if (dosage.equalsIgnoreCase(backwards(words))) {
                             obj.setGSN(strength.getGSN());
-                            if (Double.parseDouble(words.get(1)) == Double.parseDouble(words.get(0)) / 1000) {
-
-                            } else {
-                                requestObject.setQuantity(Double.parseDouble(words.get(1)));
-                            }
-
+                            //requestObject.setQuantity(Double.parseDouble(words.get(0)));
                             return;
                         }
                     }
-                    try {
-                        if (Double.parseDouble(dosage) == Double.parseDouble(words.get(1))) {
-
-                            obj.setGSN(strength.getGSN());
-                            if (Double.parseDouble(words.get(0)) == Double.parseDouble(words.get(1)) / 1000) {
-
-                            } else {
-                                requestObject.setQuantity(Double.parseDouble(words.get(0)));
-                            }
-                            return;
-                        }
-                    } catch (Exception ex) {
-                        if (dosage.equalsIgnoreCase(words.get(1))) {
-                            obj.setGSN(strength.getGSN());
-                            if (Double.parseDouble(words.get(0)) == Double.parseDouble(words.get(1)) / 1000) {
-
-                            } else {
-                                requestObject.setQuantity(Double.parseDouble(words.get(0)));
-                            }
-                            return;
-                        }
-                    }
-                    if (dosage.equalsIgnoreCase(frontwards(words))) {
+                    if (dosage.equalsIgnoreCase(dosageStrength)) {
                         obj.setGSN(strength.getGSN());
-                        //requestObject.setQuantity(Double.parseDouble(words.get(0)));
                         return;
                     }
-                    if (dosage.equalsIgnoreCase(backwards(words))) {
-                        obj.setGSN(strength.getGSN());
-                        //requestObject.setQuantity(Double.parseDouble(words.get(0)));
-                        return;
-                    }
-                }
-                if (dosage.equalsIgnoreCase(dosageStrength)) {
-                    obj.setGSN(strength.getGSN());
-                    return;
-                }
 //                if (dosageStrength.contains(dosage)) {
 //                    obj.setGSN(strength.getGSN());
 //
 //                }
 
-            });
+                });
 //            System.out.println("objGSN" +obj.getGSN());
-            obj.setBgIndicator(brand_indicator);
-            obj.setLat(longitudeLatitude.get("latitude"));
-            obj.setLng(longitudeLatitude.get("longitude"));
-            obj.setNumdrugs("1");
-            obj.setQuantity(String.valueOf(requestObject.getQuantity()));
-            obj.setBReference(requestObject.getDrugName().replace("Patch","").trim());
-            obj.setNcpdps("null");
-            if (obj.getGSN() != null && !obj.getGSN().isEmpty()) {
-                String wellRxSpecificDrugResponseStr = getWellRxDrugSpecificOutput(obj, requestObject).intern();
-                List<Drugs> wellRxSpecificDrugs = gson.fromJson(wellRxSpecificDrugResponseStr, WellRx.class).getDrugs();
-          /////
-                if (!CollectionUtils.isEmpty(wellRxSpecificDrugs)) {
-                    if (constructWellRxComparator == null)
-                        constructWellRxComparator = constructWellRxComparator();
+                obj.setBgIndicator(brand_indicator);
+                obj.setLat(longitudeLatitude.get("latitude"));
+                obj.setLng(longitudeLatitude.get("longitude"));
+                obj.setNumdrugs("1");
+                obj.setQuantity(String.valueOf(requestObject.getQuantity()));
+                obj.setBReference(requestObject.getDrugName().replace("Patch", "").trim());
+                obj.setNcpdps("null");
+                if (obj.getGSN() != null && !obj.getGSN().isEmpty()) {
+                    String wellRxSpecificDrugResponseStr = getWellRxDrugSpecificOutput(obj, requestObject).intern();
+                    List<Drugs> wellRxSpecificDrugs = gson.fromJson(wellRxSpecificDrugResponseStr, WellRx.class).getDrugs();
+                    /////
+                    if (!CollectionUtils.isEmpty(wellRxSpecificDrugs)) {
+                        if (constructWellRxComparator == null)
+                            constructWellRxComparator = constructWellRxComparator();
 
-                    Collections.sort(wellRxSpecificDrugs, constructWellRxComparator);
-                    try {
-                        DrugMaster drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
-                        drugMaster.setGsn(obj.getGSN());
-                        drugMasterRepository.save(drugMaster);
+                        Collections.sort(wellRxSpecificDrugs, constructWellRxComparator);
+                        try {
+                            DrugMaster drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0);
+                            drugMaster.setGsn(obj.getGSN());
+                            drugMasterRepository.save(drugMaster);
 
-                        if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 1).size() > 0) {
-                            DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(),2).get(0);
-                            drugRequest.setGsn(wellRxSpecificDrugs.get(0).getGSN());
-                            drugRequestRepository.save(drugRequest);
-                            try {
-                                DrugRequest drugRequest2 = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 3).get(0);
-                                drugRequest2.setGsn(wellRxSpecificDrugs.get(0).getGSN());
-                                drugRequestRepository.save(drugRequest2);
-                            }catch (Exception ex){
+                            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 1).size() > 0) {
+                                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 2).get(0);
+                                drugRequest.setGsn(wellRxSpecificDrugs.get(0).getGSN());
+                                drugRequestRepository.save(drugRequest);
+                                try {
+                                    DrugRequest drugRequest2 = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 3).get(0);
+                                    drugRequest2.setGsn(wellRxSpecificDrugs.get(0).getGSN());
+                                    drugRequestRepository.save(drugRequest2);
+                                } catch (Exception ex) {
 
+                                }
                             }
+
+                        } catch (Exception ex) {
+
                         }
-
-                    } catch (Exception ex) {
-
-                    }
 //                    System.out.println("SPecific drug price"+wellRxSpecificDrugs.get(0).getPrice());
-                    return CompletableFuture.completedFuture(wellRxSpecificDrugs);
-                }
-            }
-        }
-        if (drugs.size() == 0 && wellRxFirstAPIResp.getForms().size() >= 2) {
-            // wellRxFirstAPIResp
-
-            for (int i = 1; i < wellRxFirstAPIResp.getForms().size(); i++) {
-                requestObject.setGSN(wellRxFirstAPIResp.getForms().get(i).getGSN());
-                String str2 = getWellRxOutputString2(requestObject, longitudeLatitude, brand_indicator).intern();
-
-                WellRx wellRxFirstAPIResp2 = gson.fromJson(str2, WellRx.class);
-
-                CompletableFuture<List<Drugs>> result = getSpecWellRxDrug(wellRxFirstAPIResp2, requestedDrug, new ArrayList<>(), requestObject, longitudeLatitude, brand_indicator);
-                if (result.join().size() != 0) {
-                    try {
-                        DrugMaster drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
-                        drugMaster.setGsn(result.join().get(0).getGSN());
-                        drugMasterRepository.save(drugMaster);
-                    } catch (Exception ex) {
-
+                        return CompletableFuture.completedFuture(wellRxSpecificDrugs);
                     }
-                    return result;
                 }
             }
+            if (drugs.size() == 0 && wellRxFirstAPIResp.getForms().size() >= 2) {
+                // wellRxFirstAPIResp
 
+                for (int i = 1; i < wellRxFirstAPIResp.getForms().size(); i++) {
+                    requestObject.setGSN(wellRxFirstAPIResp.getForms().get(i).getGSN());
+                    String str2 = getWellRxOutputString2(requestObject, longitudeLatitude, brand_indicator).intern();
+
+                    WellRx wellRxFirstAPIResp2 = gson.fromJson(str2, WellRx.class);
+
+                    CompletableFuture<List<Drugs>> result = getSpecWellRxDrug(wellRxFirstAPIResp2, requestedDrug, new ArrayList<>(), requestObject, longitudeLatitude, brand_indicator);
+                    if (result.join().size() != 0) {
+                        try {
+                            DrugMaster drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0);
+                            drugMaster.setGsn(result.join().get(0).getGSN());
+                            drugMasterRepository.save(drugMaster);
+                        } catch (Exception ex) {
+
+                        }
+                        return result;
+                    }
+                }
+
+            }
+        }catch (Exception ex){
+            return CompletableFuture.completedFuture(drugs);
         }
 
         return CompletableFuture.completedFuture(drugs);
@@ -546,7 +560,7 @@ public class APIClient2 {
         WebClient webClient;
         int drugId = 0;
         try {
-            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
             List<DrugRequest>drugRequests= drugRequestRepository.findByDrugIdAndProgramId(drugId,1);
 
@@ -653,7 +667,7 @@ public class APIClient2 {
         brandGenericPost.setNumdrugs("1");
 
         try {
-            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
             if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(2);
@@ -750,7 +764,7 @@ public class APIClient2 {
         WebClient webClient = WebClient.create("https://www.wellrx.com/prescriptions/get-specific-drug");
 
         try {
-            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
             if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setGsn(wellRxSpecifDrugPost.getGSN());
@@ -761,6 +775,12 @@ public class APIClient2 {
                 drugRequest.setQuantity(wellRxSpecifDrugPost.getQuantity());
                 drugRequest.setProgramId(2);
                 drugRequest.setDrugId(drugId);
+                try {
+                    drugRequest.setLatitude(requestObject.getLatitude());
+                    drugRequest.setLongitude(requestObject.getLongitude());
+                }catch (Exception e){
+
+                }
                 drugRequestRepository.save(drugRequest);
             }else{
                 DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0) ;
@@ -772,6 +792,7 @@ public class APIClient2 {
                 drugRequest.setQuantity(wellRxSpecifDrugPost.getQuantity());
                 drugRequest.setProgramId(2);
                 drugRequest.setDrugId(drugId);
+
                 drugRequestRepository.save(drugRequest);
             }
         } catch (Exception ex) {

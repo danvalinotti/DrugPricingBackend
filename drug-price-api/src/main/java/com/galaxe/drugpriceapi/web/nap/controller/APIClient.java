@@ -1,6 +1,7 @@
 package com.galaxe.drugpriceapi.web.nap.controller;
 
 import com.galaxe.drugpriceapi.model.InsideRx;
+import com.galaxe.drugpriceapi.web.nap.blinkhealth.Blink;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrugStrength;
 import com.galaxe.drugpriceapi.web.nap.medimpact.MedImpact;
@@ -8,6 +9,7 @@ import com.galaxe.drugpriceapi.web.nap.model.PostObject;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugRequestRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.goodRx.GoodRxResponse;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugRequest;
 import com.galaxe.drugpriceapi.web.nap.singlecare.*;
@@ -61,7 +63,7 @@ public class APIClient {
         int drugId = 0;
         String str = "";
         try {
-            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
             List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 4);
 
@@ -179,7 +181,7 @@ public class APIClient {
 
 
 //        System.out.println("null");
-        return null;
+        return CompletableFuture.completedFuture(new PharmacyPricings());
     }
 
     private SinglecarePostObject constructSinglecarePostObject(DrugRequest drugRequest) {
@@ -211,7 +213,7 @@ public class APIClient {
         object.setValue(Value);
 
         try {
-            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
             if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 try {
@@ -224,6 +226,12 @@ public class APIClient {
                 drugRequest.setNdc(requestObject.getDrugNDC());
                 drugRequest.setQuantity(String.valueOf(requestObject.getQuantity()));
                 drugRequest.setZipcode(requestObject.getZipcode());
+                try {
+                    drugRequest.setLatitude(requestObject.getLatitude());
+                    drugRequest.setLongitude(requestObject.getLongitude());
+                }catch (Exception e){
+
+                }
                 drugRequestRepository.save(drugRequest);
             }else{
                 DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).get(0);
@@ -237,6 +245,12 @@ public class APIClient {
                 drugRequest.setNdc(requestObject.getDrugNDC());
                 drugRequest.setQuantity(String.valueOf(requestObject.getQuantity()));
                 drugRequest.setZipcode(requestObject.getZipcode());
+                try {
+                    drugRequest.setLatitude(requestObject.getLatitude());
+                    drugRequest.setLongitude(requestObject.getLongitude());
+                }catch (Exception e){
+
+                }
                 drugRequestRepository.save(drugRequest);
             }
         } catch (Exception ex) {
@@ -249,7 +263,7 @@ public class APIClient {
     public CompletableFuture<LocatedDrug> getMedImpact(@RequestBody RequestObject requestObject, Map<String, String> longLat, String Brand_indicator) {
         int drugId = 0;
         try {
-            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
             List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 3);
 
@@ -277,7 +291,7 @@ public class APIClient {
         String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[A-Z|a-z|\\|(|)|/|MG|MCG|ML|MG-MCG|%|\\s]", "").trim().intern();
 
         try {
-            requestObject.setGSN(drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getGsn());
+            requestObject.setGSN(drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getGsn());
             System.out.println("GSN:"+requestObject.getGSN());
         } catch (Exception ex) {
 
@@ -374,7 +388,7 @@ public class APIClient {
     private String constructMedImpactUrl(RequestObject requestObject, Map<String, String> latLong, String Brand_indicator) {
 
         try {
-            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
             if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(3);
@@ -421,7 +435,7 @@ public class APIClient {
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lng=" + latLong.get("longitude") +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";
         try {
-            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
             if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(3);
@@ -468,7 +482,7 @@ public class APIClient {
         try {
 
 
-            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+            drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
 
             List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 0);
 
@@ -601,36 +615,63 @@ public class APIClient {
     }
 
 
-    public CompletableFuture<PharmacyPricings> getGoodRxPrices(RequestObject requestObject) {
-        String str;
-        //Jsoup
-        try {
-            Document doc = Jsoup.connect("https://www.goodrx.com/lipitor?dosage=20mg&form=tablet&label_override=Lipitor&quantity=30").userAgent("Mozilla")
-                    .referrer("http://www.google.com").get();
-            String s = doc.toString();
-            if(s.contains("__state__=")){
-                int start = s.indexOf("__state__=")+10;
-                int end = s.indexOf(";<",start);
-                String json = s.substring(start,end );
-            }else{
-                System.out.println("NOT FOUND");
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
+    public CompletableFuture<GoodRxResponse> getGoodRxPrices(RequestObject requestObject) {
+        int drugId = 0;
+        String str = "";
+        DrugRequest drugRequest ;
+        List<DrugRequest> drugRequests;
+        List<DrugMaster> drugMasters;
+        if(requestObject.getDrugName().toUpperCase().equals("ATORVASTATIN CALCIUM")) {
+            System.out.println("ACYCLOVIR");
+        }
+        if(requestObject.getDrugName().toUpperCase().equals("CIPROFLOXACIN HCL")) {
+            System.out.println("ACYCLOVIR");
+        }
+        if(requestObject.getDrugName().toUpperCase().equals("CIPROFLOXACIN HYDROCHLORIDE")) {
+            System.out.println("ACYCLOVIR");
+        }
+        if(requestObject.getDrugName().toUpperCase().equals("CITALOPRAM HYDROBROMIDE")) {
+            System.out.println("ACYCLOVIR");
+        }
+        if(requestObject.getDrugName().toUpperCase().equals("CLOMIPHENE CITRATE")) {
+            System.out.println("ACYCLOVIR");
+        }
+        if(requestObject.getDrugName().toUpperCase().equals("ERGOCALCIFEROL")) {
+            System.out.println("ACYCLOVIR");
         }
 
+        try {
+            drugMasters =  drugMasterRepository.findAllByFields(requestObject.getDrugNDC(),requestObject.getQuantity(),requestObject.getZipcode());
+            drugId =drugMasters.get(0).getId();
+            if(drugId == 265659){
+                System.out.println("ACYCLOVIR");
+            }
+            drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 6);
+            drugRequest =drugRequests.get(0);
 
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugRequest.getDrugId(), 6).size() != 0) {
 
-//        str = webClient
-//                .get()
-//                .accept(MediaType.APPLICATION_JSON)
-//                .retrieve().bodyToMono(String.class).block().intern();
-//        int start = str.indexOf("__state__=")+10;
-//        int end = str.indexOf(";<",start);
-//        String json = str.substring(start,end );
-       // System.out.println("JSON"+json);
-       //        String id =
-        return null;
+                WebClient webClient = WebClient.create("https://www.goodrx.com/api/v4/drugs/" + drugRequest.getGood_rx_id() + "/prices?location=" + drugRequest.getLatitude() + "," + drugRequest.getLongitude() + "&location_type=LAT_LNG&distance_mi=6&quantity=" + drugRequest.getQuantity() + "");
+                str = webClient
+                        .get()
+                        .retrieve().bodyToMono(String.class).block();
+                GoodRxResponse goodRxResponse = gson.fromJson(str, GoodRxResponse.class);
+                try{
+                    if(goodRxResponse.getResults().get(0).getPrices().get(0).getPrice() == 0.0){
+                        System.out.println("");
+                    }
+                }catch (Exception ex){
+                    System.out.println("Caught");
+                }
+                return CompletableFuture.completedFuture(goodRxResponse);
+
+            } else {
+                return CompletableFuture.completedFuture(new GoodRxResponse());
+            }
+        }catch(Exception ex){
+
+        }
+
+          return CompletableFuture.completedFuture(new GoodRxResponse());
     }
 }

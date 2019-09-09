@@ -14,6 +14,7 @@ import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugReportController;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.PriceRepository;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.ReportRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.goodRx.GoodRxResponse;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.RandomPassword;
@@ -200,8 +201,8 @@ public class PriceController {
             ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
             scheduler.scheduleAtFixedRate(startBatchJob(),
                     initalDelay,
-                    TimeUnit.DAYS.toSeconds(2),
-//                  TimeUnit.DAYS.toSeconds(1),
+//                    TimeUnit.DAYS.toSeconds(2),
+                  TimeUnit.DAYS.toSeconds(1),
                     TimeUnit.SECONDS);
         }
 
@@ -230,7 +231,7 @@ public class PriceController {
         DrugMaster m = new DrugMaster();
 
         try {
-            m = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
+            m = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0);
         } catch (Exception e) {
 
         }
@@ -245,7 +246,7 @@ public class PriceController {
         try {
 
 
-            d = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
+            d = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0);
             System.out.println("NEWEST REPORT ID "+reportRepository.findFirstByOrderByTimestampDesc().getId());
             prices = priceRepository.findRecentPricesByDrugId(d.getId(), reportRepository.findFirstByOrderByTimestampDesc().getId());
             mongoEntity.setRecommendedDiff("0.00");
@@ -323,10 +324,14 @@ public class PriceController {
 
 
         MongoEntity finalDrug = getFinalDrug(requestObject);
-        WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+drugName.toLowerCase().replace(" ", "-")+"/details?locale=en-US");
-        DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
+        WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+drugName.toLowerCase().replace(" ", "-").replace("/", "-")+"/details?locale=en-US");
+        try {
+            DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
 
-        finalDrug.setDescription(description.getDescription());
+            finalDrug.setDescription(description.getDescription());
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
         System.out.println("FOUND PRICE FROM API");
         return finalDrug;
     }
@@ -443,7 +448,7 @@ public class PriceController {
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
-        CompletableFuture<PharmacyPricings> goodRxFuture = apiService.getGoodRxPrices(requestObject);
+        CompletableFuture<GoodRxResponse> goodRxFuture = apiService.getGoodRxPrices(requestObject);
 
         blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
 
@@ -506,7 +511,7 @@ public class PriceController {
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
-        CompletableFuture<PharmacyPricings> goodRxFuture = apiService.getGoodRxPrices(requestObject);
+        CompletableFuture<GoodRxResponse> goodRxFuture = apiService.getGoodRxPrices(requestObject);
 
     }
 
@@ -532,7 +537,7 @@ public class PriceController {
             }
 
         });
-        if(sb.toString().equals("") || sb.toString() == null){
+        if(!sb.toString().equals(B) && !sb.toString().equals(G)){
             return G;
         }
         return sb.toString();

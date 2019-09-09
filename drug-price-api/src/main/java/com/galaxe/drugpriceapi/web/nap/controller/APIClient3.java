@@ -48,7 +48,7 @@ public class APIClient3 {
             Local lowestPrice = getLowestPrice(price.join());
             try {
                 if(price.join().getLocal().getRaw_value()!="") {
-                    int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0).getId();
+                    int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
                   try {
                       int size = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).size();
                   }catch (Exception ex){
@@ -89,39 +89,45 @@ public class APIClient3 {
 
     private Local getLowestPrice(Price price) {
         List<Local> prices = new ArrayList<>();
-        try {
-            prices.add(price.getLocal());
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        try {
-            prices.add(price.getDelivery());
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        try {
-            prices.add(price.getEdlp());
-        }catch (Exception e){
-        e.printStackTrace();
-        }
-        try {
-        prices.add(price.getRetail());
-        }catch (Exception e){
-        e.printStackTrace();
-        }
-        Local lowestLocal = new Local();
-        for(int i = 0; i< prices.size();i++ ){
-            if(lowestLocal == null){
-                lowestLocal = prices.get(i);
-            }else{
-                try{
-                if(Integer.parseInt(lowestLocal.getRaw_value())>Integer.parseInt(prices.get(i).getRaw_value()) ){
+        if(price != null) {
+            try {
+                prices.add(price.getLocal());
+            } catch (Exception e) {
+                e.printStackTrace();
+
+            }
+            try {
+                prices.add(price.getDelivery());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                prices.add(price.getEdlp());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                prices.add(price.getRetail());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Local lowestLocal = new Local();
+            for (int i = 0; i < prices.size(); i++) {
+                if (lowestLocal == null) {
                     lowestLocal = prices.get(i);
-                }}catch (Exception e){
-                    e.printStackTrace();
+                } else {
+                    try {
+
+                        if (Integer.parseInt(lowestLocal.getRaw_value()) > Integer.parseInt(prices.get(i).getRaw_value())) {
+                            lowestLocal = prices.get(i);
+                        }
+                    } catch (Exception e) {
+//                    e.printStackTrace();
+                    }
                 }
             }
+            return lowestLocal;
         }
-        return lowestLocal;
+        return new Local();
     }
 }

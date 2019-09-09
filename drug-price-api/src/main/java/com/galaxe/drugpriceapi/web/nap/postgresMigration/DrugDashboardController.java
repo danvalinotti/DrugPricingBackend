@@ -61,7 +61,7 @@ public class DrugDashboardController {
 
     @PostMapping(value = "/dashboard/drug/delete")
     public void deleteDashboardDrug(@RequestBody MongoEntity mongoEntity) {
-        DrugMaster drugMaster = drugMasterRepository.findAllByFields(mongoEntity.getNdc(), Double.parseDouble(mongoEntity.getQuantity())).get(0);
+        DrugMaster drugMaster = drugMasterRepository.findAllByFields(mongoEntity.getNdc(), Double.parseDouble(mongoEntity.getQuantity()),mongoEntity.getZipcode()).get(0);
         List<Dashboard> dashboards = dashboardRepository.findByDrugMasterId(drugMaster.getId());
         dashboardRepository.deleteAll(dashboards);
     }
@@ -131,7 +131,7 @@ public class DrugDashboardController {
         Dashboard d = new Dashboard();
         DrugMaster drugMaster;
         try {
-            drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity()).get(0);
+            drugMaster = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0);
         } catch (Exception e) {
             DrugMaster drugMaster1 = new DrugMaster();
             drugMaster1.setZipCode(requestObject.getZipcode());

@@ -19,10 +19,12 @@ public class ReportRow {
     Integer id ;
     String gsn;
     String ndc;
+    String zip_code;
     String dosage_strength;
     String quantity;
     String name ;
     String insiderx_price ;
+    String goodrx_price ;
     String medimpact_price ;
     String wellrx_price ;
     String blink_price ;

@@ -50,11 +50,15 @@ public class DrugReportController {
     @Autowired
     MasterListService masterListService;
     @Autowired
+    APIClient2 apiClient2;
+    @Autowired
     DrugMasterRepository drugMasterRepository;
     @Autowired
     PriceRepository priceRepository;
     @Autowired
     ReportDrugsRepository reportDrugsRepository;
+    @Autowired
+    DrugRequestRepository drugRequestRepository;
     @Autowired
     PriceController priceController;
     @Autowired
@@ -115,6 +119,228 @@ public class DrugReportController {
             throwable.printStackTrace();
         }
 
+    }
+
+    @PostMapping("/edit/drug")
+    public void editDrug(@RequestBody DrugMaster drugMaster) {
+        DrugMaster old  = drugMasterRepository.findById(drugMaster.getId()).get();
+       List<DrugMaster> oldDrugs = drugMasterRepository.findAllByNDCQuantity(old.getNdc(),old.getQuantity());
+        for (DrugMaster oldDrug: oldDrugs ) {
+            oldDrug.setReportFlag(false);
+            drugMasterRepository.save(oldDrug);
+        }
+
+
+        RequestObject requestObject = new RequestObject();
+        requestObject.setDrugName(drugMaster.getName());
+        requestObject.setDosageStrength(drugMaster.getDosageStrength());
+        requestObject.setQuantity(drugMaster.getQuantity());
+        requestObject.setDrugNDC(drugMaster.getNdc());
+        requestObject.setReportFlag(drugMaster.getReportFlag());
+        addDrug(requestObject);
+
+    }
+
+    @PostMapping("/add/drug")
+    public void addDrug(@RequestBody RequestObject requestObject){
+
+        List<String> zipCodes = new ArrayList<>();
+        zipCodes.add("90036");
+        zipCodes.add("30606");
+        zipCodes.add("60639");
+        zipCodes.add("10023");
+        zipCodes.add("75034");
+        List<String> longitudes = new ArrayList<>();
+        longitudes.add("-118.3520389");
+        longitudes.add("-83.4323375");
+        longitudes.add("-87.7517295");
+        longitudes.add("-73.9800645");
+        longitudes.add("-96.8565427");
+        List<String> latitudes = new ArrayList<>();
+        latitudes.add("34.0664817");
+        latitudes.add("33.9448436");
+        latitudes.add("41.9225138");
+        latitudes.add("40.7769059");
+        latitudes.add("33.1376528");
+
+        CompletableFuture<DrugMaster>  loc1  = new CompletableFuture<>();
+        CompletableFuture<DrugMaster>  loc2  = new CompletableFuture<>();
+        CompletableFuture<DrugMaster>  loc3  = new CompletableFuture<>();
+        CompletableFuture<DrugMaster>  loc4  = new CompletableFuture<>();
+        CompletableFuture<DrugMaster>  loc5  = new CompletableFuture<>();
+        for(int i = 0 ; i<zipCodes.size(); i++){
+            requestObject.setZipcode(zipCodes.get(i));
+            requestObject.setLongitude(longitudes.get(i));
+            requestObject.setLatitude(latitudes.get(i));
+
+            try {
+                    if(i ==0){
+                        loc1=  CompletableFuture.completedFuture(makeDrugAndRequests(requestObject));
+                    }else if(i ==1){
+                        loc2=  CompletableFuture.completedFuture(makeDrugAndRequests(requestObject));
+                    }else if(i ==2){
+                        loc3=  CompletableFuture.completedFuture(makeDrugAndRequests(requestObject));
+                    }else if(i ==3){
+                        loc4=  CompletableFuture.completedFuture(makeDrugAndRequests(requestObject));
+                    }else if(i ==4){
+                        loc5=  CompletableFuture.completedFuture(makeDrugAndRequests(requestObject));
+                    }
+
+
+
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+
+
+        }
+
+        CompletableFuture.allOf(loc1,loc2,loc3,loc4,loc5).join();
+    }
+
+    private DrugMaster makeDrugAndRequests(RequestObject requestObject) {
+        DrugMaster drugMaster = new DrugMaster();
+        Map<String,String> longLat = new HashMap<>();
+        longLat.put("longitude",requestObject.getLongitude());
+        longLat.put("latitude",requestObject.getLatitude());
+        drugMaster.setDosageStrength(requestObject.getDosageStrength());
+        drugMaster.setDrugType(requestObject.getDrugType());
+        drugMaster.setZipCode(requestObject.getZipcode());
+        drugMaster.setReportFlag(requestObject.getReportFlag());
+        drugMaster.setNdc(requestObject.getDrugNDC());
+        drugMaster.setName(requestObject.getDrugName());
+        drugMaster.setQuantity(requestObject.getQuantity());
+        Map<String,String> brandTypes = getBrandTypes(requestObject.getDrugType());
+        drugMaster = drugMasterRepository.save(drugMaster);
+        System.out.println("SAVED DRUG MASTER");
+        System.out.println(drugMaster.getName());
+        long time = System.nanoTime();
+        apiClient2.getWellRxDrugInfo(requestObject, longLat, drugMaster.getDrugType());
+        long end = System.nanoTime();
+        System.out.println("TIME ELAPSED: " + (end-time));
+        //InsideRx Request
+        DrugRequest insideRequest = new DrugRequest();
+        insideRequest.setNdc(drugMaster.getNdc());
+        insideRequest.setDrugName(drugMaster.getName());
+        insideRequest.setLongitude(requestObject.getLongitude());
+        insideRequest.setLatitude(requestObject.getLatitude());
+        insideRequest.setQuantity(drugMaster.getQuantity()+"");
+        insideRequest.setDrugId(drugMaster.getId());
+        insideRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
+        insideRequest.setProgramId(0);
+        drugRequestRepository.save(insideRequest);
+
+        DrugRequest usPharmRequest = new DrugRequest();
+        usPharmRequest.setProgramId(1);
+        usPharmRequest.setNdc(drugMaster.getNdc());
+        usPharmRequest.setDrugName(drugMaster.getName());
+        usPharmRequest.setLongitude(requestObject.getLongitude());
+        usPharmRequest.setLatitude(requestObject.getLatitude());
+        usPharmRequest.setQuantity(drugMaster.getQuantity()+"");
+        usPharmRequest.setDrugId(drugMaster.getId());
+        usPharmRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
+        drugRequestRepository.save(usPharmRequest);
+
+//        DrugRequest wellRxRequest = new DrugRequest();
+//        wellRxRequest.setProgramId(2);
+////        wellRxRequest.setNdc(drugMaster.getNdc());
+//        wellRxRequest.setDrugName(drugMaster.getName().toUpperCase()
+//                .replace("/", "-")
+//                .replace("WITH PUMP", "")
+//                .replace("PUMP", "")
+//                .replace("VAGINAL", "")
+//                .replace(" PEN", "")
+//                .replace("PATCH", "")
+//                .replace("HYDROCHLORIDE", "HCL"));
+//        wellRxRequest.setGsn();
+//        wellRxRequest.setLongitude(requestObject.getLongitude());
+//        wellRxRequest.setLatitude(requestObject.getLatitude());
+//        wellRxRequest.setQuantity(drugMaster.getQuantity()+"");
+//        wellRxRequest.setDrugId(drugMaster.getId());
+//        wellRxRequest.setBrandIndicator(brandTypes.get("short"));//BRAND / BRAND_WITH_GENERIC
+//        drugRequestRepository.save(usPharmRequest);
+
+        DrugRequest medImpactRequest = new DrugRequest();
+        medImpactRequest.setProgramId(3);
+//        medImpactRequest.setNdc(drugMaster.getNdc());
+        medImpactRequest.setDrugName(drugMaster.getName().toUpperCase()
+                .replace("/", "-")
+                .replace("WITH PUMP", "")
+                .replace("PUMP", "")
+                .replace("VAGINAL", "")
+                .replace(" PEN", "")
+                .replace("PATCH", "")
+                .replace("HYDROCHLORIDE", "HCL"));
+        medImpactRequest.setLongitude(requestObject.getLongitude());
+        medImpactRequest.setLatitude(requestObject.getLatitude());
+        medImpactRequest.setQuantity(drugMaster.getQuantity()+"");
+        medImpactRequest.setDrugId(drugMaster.getId());
+        medImpactRequest.setBrandIndicator(brandTypes.get("short"));//BRAND / BRAND_WITH_GENERIC
+        try {
+            medImpactRequest.setGsn(drugMasterRepository.findById(drugMaster.getId()).get().getGsn());
+        }catch (Exception ex){
+
+        }
+        drugRequestRepository.save(medImpactRequest);
+
+        DrugRequest singleCareRequest = new DrugRequest();
+        singleCareRequest.setProgramId(4);
+        singleCareRequest.setNdc(drugMaster.getNdc());
+        singleCareRequest.setDrugName(drugMaster.getName());
+        singleCareRequest.setLongitude(requestObject.getLongitude());
+        singleCareRequest.setLatitude(requestObject.getLatitude());
+        singleCareRequest.setQuantity(drugMaster.getQuantity()+"");
+        singleCareRequest.setDrugId(drugMaster.getId());
+        singleCareRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
+        drugRequestRepository.save(singleCareRequest);
+
+        DrugRequest blinkHealth = new DrugRequest();
+        singleCareRequest.setProgramId(5);
+        singleCareRequest.setNdc(drugMaster.getNdc());
+        singleCareRequest.setDrugName(drugMaster.getName().replace(" ", "-"));
+        singleCareRequest.setLongitude(requestObject.getLongitude());
+        singleCareRequest.setLatitude(requestObject.getLatitude());
+        singleCareRequest.setQuantity(drugMaster.getQuantity()+"");
+        singleCareRequest.setDrugId(drugMaster.getId());
+        singleCareRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
+        drugRequestRepository.save(blinkHealth);
+
+        DrugRequest goodRxRequest = new DrugRequest();
+        goodRxRequest.setNdc(drugMaster.getNdc());
+        goodRxRequest.setDrugName(drugMaster.getName());
+        goodRxRequest.setLongitude(requestObject.getLongitude());
+        goodRxRequest.setLatitude(requestObject.getLatitude());
+        goodRxRequest.setQuantity(drugMaster.getQuantity()+"");
+        goodRxRequest.setDrugId(drugMaster.getId());
+        goodRxRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
+        goodRxRequest.setProgramId(6);
+        drugRequestRepository.save(goodRxRequest);
+
+        return drugMaster;
+    }
+
+    private Map<String, String> getBrandTypes(String drugType) {
+        Map<String, String> brandTypes = new HashMap<>();
+        try {
+            if (drugType.equals("G") || drugType.equals("GENERIC")) {
+                brandTypes.put("long", "GENERIC");
+                brandTypes.put("short", "G");
+                return brandTypes;
+            } else if (drugType.equals("B") || drugType.equals("BRAND_WITH_GENERIC")) {
+                brandTypes.put("long", "BRAND_WITH_GENERIC");
+                brandTypes.put("short", "B");
+                return brandTypes;
+            } else {
+                brandTypes.put("long", "GENERIC");
+                brandTypes.put("short", "G");
+                return brandTypes;
+            }
+        }catch (Exception e){
+            brandTypes.put("long", "GENERIC");
+            brandTypes.put("short", "G");
+            return brandTypes;
+
+        }
     }
 
     @GetMapping(value = "/report/create/empty")
@@ -233,7 +459,7 @@ public class DrugReportController {
             mongoEntity.setQuantity(drugMaster.getQuantity() + "");
 
             List<Program> programs = new ArrayList<>();
-            Program[] programArr = new Program[6];
+            Program[] programArr = new Program[7];
             List<Price> prices = priceRepository.findByDrugDetailsId(i);
             mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
             mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
@@ -279,7 +505,7 @@ public class DrugReportController {
     public ResponseEntity<Resource> exportReport(List<MongoEntity> mongoEntities) {
         List<List<String>> rows = new ArrayList<>();
         String[] str = {"Drug Name", "Drug Type", "Dosage Strength",
-                "Quantity", "Zip Code", "Inside Rx Price", "U.S Pharmacy Card Price",
+                "Quantity", "Zip Code", "Inside Rx Price","GoodRx Price", "U.S Pharmacy Card Price",
                 "Well Rx Price", "MedImpact Price", "Singlecare Price",
                 "Recommended Price", "Difference"};
         List<String> header = Arrays.asList(str);
@@ -296,6 +522,7 @@ public class DrugReportController {
             row.add(element.getZipcode());
 
             row.add("$"+element.getPrograms().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(6).getPrice());
             row.add("$"+element.getPrograms().get(1).getPrice());
             row.add("$"+element.getPrograms().get(2).getPrice());
             row.add("$"+element.getPrograms().get(3).getPrice());
@@ -321,6 +548,7 @@ public class DrugReportController {
         data0.add("Quantity");
 
         data0.add("InsideRx Price");
+        data0.add("GoodRx Price");
         data0.add("U.S Pharmacy Card Price");
         data0.add("WellRx Price");
         data0.add("MedImpact Price");
@@ -329,7 +557,8 @@ public class DrugReportController {
         data0.add("Recommended Price");
         data0.add("Difference Price");
         rows.add(data0);
-        for (ReportRow reportRow:this.reportRowRepository.exportReport(reportId)) {
+        List<ReportRow>reportRows = this.reportRowRepository.exportReport(reportId);
+        for (ReportRow reportRow:reportRows) {
 
             List<String> data = new ArrayList<>();
             data.add(reportRow.name);
@@ -339,6 +568,8 @@ public class DrugReportController {
             data.add(reportRow.dosage_strength);
             data.add(reportRow.quantity);
             try{data.add(new BigDecimal(reportRow.insiderx_price)
+                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            try{data.add(new BigDecimal(reportRow.goodrx_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.pharm_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
@@ -404,23 +635,34 @@ public class DrugReportController {
         Map<Integer, Double> providerPrices = new HashMap<>();
         try {
 
-            List<DrugMaster> drugMasterList = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity());
+            List<DrugMaster> drugMasterList = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode());
             DrugMaster drugMaster = drugMasterList.get(drugMasterList.size() - 1);
+
             here = 1;
             try {
                 requestObject.setGSN(drugMaster.getGsn());
             }
             catch (Exception e){
-
+                e.printStackTrace();
             }
             List<Price> prices = new ArrayList<>();
 
            try{
               prices =  drugMasterController.getDetails(requestObject,drugMaster).getPrices();
-           }catch (Exception e){
-           }
-
+              prices.removeIf(price -> price ==null);
+           Double lowestPrice = null ;
             for (Price price: prices) {
+                if(lowestPrice == null){
+                    lowestPrice=  price.getPrice();
+                }else{
+                    try {
+                        if (price != null  && lowestPrice > price.getPrice()) {
+                            lowestPrice = price.getPrice();
+                        }
+                    }catch (Exception ex){
+                        ex.printStackTrace();
+                    }
+                }
                 try {
 
                     Report_Drugs report_drug = new Report_Drugs();
@@ -429,7 +671,7 @@ public class DrugReportController {
                         Double diff = p - price.getPrice();
                         price.setDifference(diff);
                     } catch (Exception ex) {
-
+                        ex.printStackTrace();
                     }
 
                     Price newPrice = priceRepository.save(price);
@@ -441,20 +683,30 @@ public class DrugReportController {
                     report_drugs.add(report_drug);
 
                 }catch (Exception ex){
-
+                    ex.printStackTrace();
                 }
             }
 
+            for (Price price: prices) {
+                try{
+                price.setRecommendedPrice(lowestPrice);
+                price.setLowestMarketPrice(lowestPrice);
+                priceRepository.save(price);
+                }catch (Exception ex){
+
+                }
+            }
+           }catch (Exception e){
+               e.printStackTrace();
+           }
             Report report = reportRepository.findById(report2.getId()).get();
             report.setDrugCount(report.getDrugCount() + 1);
             reportRepository.save(report);
-            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("About to save report drug");}
 
             return reportDrugsRepository.saveAll(report_drugs);
 
         } catch (Exception e) {
-            if(requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")){System.out.println("Error before save");}
-
+            e.printStackTrace();
             if(here ==0){
             DrugMaster drugMaster = new DrugMaster();
 
@@ -471,7 +723,7 @@ public class DrugReportController {
             try {
                 drugMaster.setReportFlag(requestObject.getReportFlag());
             }catch (Exception ex ){
-
+                ex.printStackTrace();
             }
             drugMaster.setDrugType(brandType);
             drugMaster = drugMasterRepository.save(drugMaster);
@@ -479,7 +731,7 @@ public class DrugReportController {
             List<Price> prices = new ArrayList<>();
 
 
-            for (int i = 0; i < 6; i++) {
+            for (int i = 0; i < 7; i++) {
                 Price p = new Price();
                 p.setDrugDetailsId(drugMaster.getId());
                 p.setProgramId(i);
@@ -497,7 +749,7 @@ public class DrugReportController {
                         reportDrug.setPriceId(p.getId());
                         report_drugs.add(reportDrug);
                     } catch (Exception excep) {
-
+                        excep.printStackTrace();
                     }
                 }
 
@@ -574,7 +826,7 @@ public class DrugReportController {
             Alert alert = new Alert();
             alert.setDetailedMessage("Batch for Report "+ newReport.getId() +" has started");
             alert.setName("Report "+ newReport.getId() +" Batch Start");
-//            alert.setType("Batch Start");
+
             alert.setTime(new Date());
             drugAlertController.sendAlert(alert);
             forward = 1;
@@ -587,7 +839,7 @@ public class DrugReportController {
                 //DrugMaster drugMaster = drugMasterRepository.findById(i).get();
                 count++;
                 RequestObject requestObject = new RequestObject();
-                drugMasterRepository.saveAll(drugMasterRepository.findAll());
+//                drugMasterRepository.saveAll(drugMasterRepository.findAll());
                 requestObject.setQuantity(drugMaster.getQuantity());
 
                 requestObject.setDosageStrength(drugMaster.getDosageStrength());
@@ -596,8 +848,8 @@ public class DrugReportController {
                 requestObject.setZipcode(drugMaster.getZipCode());
                 requestObject.setReportFlag(drugMaster.getReportFlag());
 
-                Map<String, String> longitudeLatitude = priceController.constructLongLat(requestObject.getZipcode());
                 String brandType = priceController.getBrandIndicator(requestObject);
+
                 if (brandType.equals("B")) {
                     brandType = "BRAND_WITH_GENERIC";
                 } else {
@@ -783,6 +1035,9 @@ public class DrugReportController {
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
+//            fileOut = new FileOutputStream("/home/files/poi-generated-file.xlsx");
+//            InputStream fileInputStream = new FileInputStream("/home/files/poi-generated-file.xlsx");
+//            resource = new InputStreamResource(new FileInputStream("/home/files/poi-generated-file.xlsx"));
             fileOut = new FileOutputStream("poi-generated-file.xlsx");
             InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
             resource = new InputStreamResource(new FileInputStream("poi-generated-file.xlsx"));
@@ -795,6 +1050,7 @@ public class DrugReportController {
         }
         HttpHeaders headers = new HttpHeaders();
         File file = new File("poi-generated-file.xlsx");
+//        File file = new File("/home/files/poi-generated-file.xlsx");
         System.out.println(file.length());
         //we are saying we are getting an attachment and what to name it
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "poi-generated-file.xlsx");

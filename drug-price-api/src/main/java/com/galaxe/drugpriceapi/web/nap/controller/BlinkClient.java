@@ -53,12 +53,12 @@ public class BlinkClient {
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve().bodyToMono(String.class).block();
         }catch(Exception e){
-            return null;
+            return CompletableFuture.completedFuture(new Price());
         }
         BlinkHealth blinkHealth = gson.fromJson(str, BlinkHealth.class);
 
         if(blinkHealth.getResult().getDrug().getFormatted_name().contains("Generic")){
-            return null;
+            return CompletableFuture.completedFuture(new Price());
         }
 
         if (!CollectionUtils.isEmpty(blinkHealth.getResult().getDrug().getForms())) {
@@ -83,7 +83,7 @@ public class BlinkClient {
             }
             }
         }
-        return null;
+        return CompletableFuture.completedFuture(new Price());
 
     }
 

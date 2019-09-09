@@ -38,6 +38,8 @@ public class DrugRequest {
     String brandIndicator;
     @Column
     String gsn;
+    @Column
+    String good_rx_id;
 
 
 }
