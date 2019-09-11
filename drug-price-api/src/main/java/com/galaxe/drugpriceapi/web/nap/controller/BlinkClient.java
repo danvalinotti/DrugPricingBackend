@@ -42,8 +42,8 @@ public class BlinkClient {
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<Price> getBlinkPrice(RequestObject requestObject) {
-        String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
-        String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
+       String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
+       String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
        String str = "";
 
         try {

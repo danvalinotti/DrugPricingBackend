@@ -4,6 +4,7 @@ import lombok.*;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 
 import javax.persistence.*;
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -25,5 +26,9 @@ public class Profile {
     String password;
     @Column
     String role;
+    @Column
+    String activeToken;
+    @Temporal(TemporalType.TIMESTAMP)
+    Date tokenDate;
 
 }

@@ -10,10 +10,7 @@ import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
 import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugMasterRepository;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.DrugReportController;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.PriceRepository;
-import com.galaxe.drugpriceapi.web.nap.postgresMigration.ReportRepository;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.*;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.goodRx.GoodRxResponse;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
@@ -27,6 +24,7 @@ import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
 import com.mongodb.Mongo;
 import org.decimal4j.util.DoubleRounder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.webmvc.ProfileController;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -48,6 +46,8 @@ public class PriceController {
     PriceRepository priceRepository;
     @Autowired
     ReportRepository reportRepository;
+    @Autowired
+    DrugProfileController drugProfileController;
     @Autowired
     MasterListService masterListService;
 
@@ -103,7 +103,7 @@ public class PriceController {
 
 
     private Boolean flag = setScheduledFutureJob();
-
+    private Boolean tokenFlag = setScheduledTokenJob();
     private Runnable startBatchJob() {
         Runnable task = () -> {
             count++;
@@ -122,6 +122,18 @@ public class PriceController {
             try {
                 drugReportController.generateReport();
 //                masterListService.add();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        };
+        return task;
+    }
+    private Runnable startTokenJob() {
+        Runnable task = () -> {
+
+            try {
+                System.out.println("TOKEN JOB STARTED");
+                drugProfileController.resetTokens();
             } catch (Throwable throwable) {
                 throwable.printStackTrace();
             }
@@ -205,6 +217,16 @@ public class PriceController {
                   TimeUnit.DAYS.toSeconds(1),
                     TimeUnit.SECONDS);
         }
+
+        return false;
+    }
+    private boolean setScheduledTokenJob() {
+            long initalDelay = TimeUnit.MINUTES.toSeconds(2);
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            scheduler.scheduleAtFixedRate(startTokenJob(),
+                    initalDelay,
+                    TimeUnit.HOURS.toSeconds(1),
+                    TimeUnit.SECONDS);
 
         return false;
     }

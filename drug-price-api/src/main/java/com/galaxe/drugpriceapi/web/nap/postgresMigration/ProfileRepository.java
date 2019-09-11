@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface ProfileRepository extends JpaRepository<Profile,Integer> {
     List<Profile> findByUsername(String test);
+
+    List<Profile> findByActiveToken(String name);
 }

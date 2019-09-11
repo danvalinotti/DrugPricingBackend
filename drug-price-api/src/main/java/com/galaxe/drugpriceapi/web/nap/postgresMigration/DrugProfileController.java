@@ -22,9 +22,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.security.Key;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.temporal.Temporal;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -105,5 +107,27 @@ public class DrugProfileController {
 
 
         return pass;
+    }
+
+    public void resetTokens() {
+        try {
+            List<Profile> profiles = profileRepository.findAll();
+            for (Profile profile : profiles) {
+                if (profile.getActiveToken() != null) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(new Date());
+                    cal.add(Calendar.HOUR, -1);
+                    Date oneHourBack = cal.getTime();
+                    if (profile.getTokenDate().before(oneHourBack)) {
+                        profile.setActiveToken(null);
+                        profile.setTokenDate(null);
+                        profileRepository.save(profile);
+                    }
+                }
+
+            }
+        }catch(Exception ex){
+
+        }
     }
 }

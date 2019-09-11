@@ -59,7 +59,6 @@ public class APIClient3 {
                         drugRequest.setZipcode(requestObject.getZipcode());
                         drugRequest.setDrugName(requestObject.getDrugName().replace(" ", "-"));
                         drugRequest.setProgramId(5);
-
                         drugRequest.setGsn(price.join().getMedId());
                         drugRequest.setDrugId(drugId);
                         drugRequestRepository.save(drugRequest);

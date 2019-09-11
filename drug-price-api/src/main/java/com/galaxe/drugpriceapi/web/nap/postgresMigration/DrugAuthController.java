@@ -25,10 +25,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Key;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -58,6 +55,10 @@ public class DrugAuthController {
 
         String jws = Jwts.builder().setSubject(profileJson).signWith(this.key).compact();
         Profile p = new Profile();
+       Profile foundProfile =  profileRepository.findByUsername(profile.getUsername()).get(0);
+        foundProfile.setTokenDate(new Date());
+        foundProfile.setActiveToken(jws);
+        profileRepository.save(foundProfile);
         p.setName(jws);
         return p;
 
@@ -66,29 +67,55 @@ public class DrugAuthController {
     @PostMapping("/authenticate/token")
     public Profile authenticateToken(@RequestBody Profile profile) {
 
-        try {
-            String s = Jwts.parser().setSigningKey(this.key).parseClaimsJws(profile.getName()).getBody().getSubject();
-            ObjectMapper objectMapper = new ObjectMapper();
-            Profile p = objectMapper.readValue(s, Profile.class);
-            Profile profile1 = profileRepository.findByUsername(p.getUsername()).get(0);
-            boolean isCorrect = BCrypt.checkpw(p.getPassword(),profile1.getPassword());
-            if(isCorrect==true){
-                profile.setPassword(profile.getName());
-                profile.setUsername(profile1.getUsername());
-                profile.setRole(profile1.getRole());
-                return profile;
-            }else{
-                profile.setPassword("false");
-                return profile;
+        try{
+
+            List<Profile> profiles =  profileRepository.findByActiveToken(profile.getName());
+           if(profiles.size()!=0){
+               Profile foundProfile = profiles.get(0);
+               profile.setPassword(profile.getName());
+               profile.setUsername(foundProfile.getUsername());
+               profile.setRole(foundProfile.getRole());
+               foundProfile.setTokenDate(new Date());
+               profileRepository.save(foundProfile);
+               return profile;
+
+           }else{
+            profile.setPassword("false");
+            return profile;
             }
-
-
-        } catch (Exception e) {
+        }catch (Exception ex){
             profile.setPassword("false");
             return profile;
         }
 
     }
+    @PostMapping("/profile/logout")
+    public Profile logout(@RequestBody Profile profile) {
+
+        try{
+
+            List<Profile> profiles =  profileRepository.findByActiveToken(profile.getName());
+            if(profiles.size()!=0){
+                Profile foundProfile = profiles.get(0);
+//                profile.setPassword(profile.getName());
+//                profile.setUsername(foundProfile.getUsername());
+//                profile.setRole(foundProfile.getRole());
+                foundProfile.setActiveToken(null);
+                foundProfile.setTokenDate(null);
+                profileRepository.save(foundProfile);
+                return profile;
+
+            }else{
+                profile.setPassword("false");
+                return profile;
+            }
+        }catch (Exception ex){
+            profile.setPassword("false");
+            return profile;
+        }
+
+    }
+
     @PostMapping("/update/password")
     public Profile updatePassword(@RequestBody Profile profile){
        Profile p = profileRepository.findByUsername(profile.getUsername()).get(0);

@@ -12,7 +12,7 @@ import java.util.List;
 public interface DrugRequestRepository extends JpaRepository<DrugRequest,Integer> {
 
     List<DrugRequest> findByDrugIdAndProgramId(int drugId, Integer i);
-
+    List<DrugRequest> findByDrugIdAndProgramId(String drugId, Integer i);
     @Query(value = "WITH summary AS ( " +
             " SELECT d.id, d.brand_indicator, d.drug_id, d.drug_name,d.gsn, d.latitude, d.longitude, " +
             "   d.program_id, m.ndc, m.quantity, d.zipcode, d.good_rx_id, " +
@@ -33,4 +33,9 @@ public interface DrugRequestRepository extends JpaRepository<DrugRequest,Integer
     List<DrugRequest> findByDrugNDCQuantityAndProgramId(String ndc, double quantity, int programId);
 
     List<DrugRequest> findByProgramId(int i);
+
+    @Query(value = "SELECT * FROM drug_request "+
+            " WHERE drug_request.drug_id = ?1 AND drug_request.program_id = ?2 "
+            , nativeQuery = true)
+    List<DrugRequest> findByDrugIdAndProgram(String drug_id, int i);
 }
