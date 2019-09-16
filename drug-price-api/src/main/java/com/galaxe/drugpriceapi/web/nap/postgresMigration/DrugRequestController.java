@@ -135,6 +135,22 @@ public class DrugRequestController {
         }
         drugRequestRepository.saveAll(drugRequests);
     }
+    @GetMapping(value = "/update/quantities")
+    public void updateQuantities() {
+        List<DrugRequest> drugRequests =  drugRequestRepository.findAll();
+        for (DrugRequest drugRequest:drugRequests) {
+            try{
+                if(drugRequest.getQuantity()== null){
+                    DrugMaster drugMaster = drugMasterRepository.findById(drugRequest.getDrugId()).get();
+                    drugRequest.setQuantity(drugMaster.getQuantity()+"");
+                    drugRequestRepository.save(drugRequest);
+                }
+            }catch (Exception ex){
+
+            }
+        }
+
+    }
     @GetMapping(value = "/update/locations")
     public void updateLongLatZip() {
        List<DrugRequest> drugRequests =  drugRequestRepository.findAll();
@@ -221,14 +237,14 @@ public class DrugRequestController {
 
         for (int i = 0;i<drugRequests.size();i++){
             DrugRequest drugRequest = drugRequests.get(i);
-            if(drugRequest.getGsn().length() == 5){
-                drugRequest.setGsn("0"+drugRequest.getGsn());
+            if(drugRequest.getGsn().trim().length() == 5){
+                drugRequest.setGsn("0"+drugRequest.getGsn().trim());
                 drugRequestRepository.save(drugRequest);
-            }else if(drugRequest.getGsn().length() == 4){
-                drugRequest.setGsn("00"+drugRequest.getGsn());
+            }else if(drugRequest.getGsn().trim().length() == 4){
+                drugRequest.setGsn("00"+drugRequest.getGsn().trim());
                 drugRequestRepository.save(drugRequest);
-            }else if(drugRequest.getGsn().length() == 3){
-                drugRequest.setGsn("000"+drugRequest.getGsn());
+            }else if(drugRequest.getGsn().trim().length() == 3){
+                drugRequest.setGsn("000"+drugRequest.getGsn().trim());
                 drugRequestRepository.save(drugRequest);
             }
         }
