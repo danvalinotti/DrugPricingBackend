@@ -981,6 +981,7 @@ public class DrugReportController {
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
         PrintStream fileStream = null;
+        String fileName = "/home/files/poi-generated-file.xlsx";
 //        try {
 //            fileStream = new PrintStream("api_log.txt");
 //        } catch (FileNotFoundException e) {
@@ -1035,9 +1036,9 @@ public class DrugReportController {
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
-            fileOut = new FileOutputStream("/home/files/poi-generated-file.xlsx");
-            InputStream fileInputStream = new FileInputStream("/home/files/poi-generated-file.xlsx");
-            resource = new InputStreamResource(new FileInputStream("/home/files/poi-generated-file.xlsx"));
+            fileOut = new FileOutputStream(fileName);
+            InputStream fileInputStream = new FileInputStream(fileName);
+            resource = new InputStreamResource(new FileInputStream(fileName));
 //            fileOut = new FileOutputStream("poi-generated-file.xlsx");
 //            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
 //            resource = new InputStreamResource(new FileInputStream("poi-generated-file.xlsx"));
@@ -1049,7 +1050,7 @@ public class DrugReportController {
             e.printStackTrace();
         }
         HttpHeaders headers = new HttpHeaders();
-        File file = new File("/home/files/poi-generated-file.xlsx");
+        File file = new File(fileName);
 //        File file = new File("/home/files/poi-generated-file.xlsx");
         System.out.println(file.length());
         //we are saying we are getting an attachment and what to name it
