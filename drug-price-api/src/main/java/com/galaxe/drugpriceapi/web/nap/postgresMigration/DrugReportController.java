@@ -18,6 +18,7 @@ import com.galaxe.drugpriceapi.web.nap.singlecare.ExclusivePriceDetails;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
+import com.galaxe.drugpriceapi.web.nap.ui.Programs;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -458,7 +459,7 @@ public class DrugReportController {
             mongoEntity.setNdc(drugMaster.getNdc());
             mongoEntity.setQuantity(drugMaster.getQuantity() + "");
 
-            List<Program> programs = new ArrayList<>();
+            List<Programs> programs = new ArrayList<>();
             Program[] programArr = new Program[7];
             List<Price> prices = priceRepository.findByDrugDetailsId(i);
             mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
@@ -485,7 +486,16 @@ public class DrugReportController {
                     mongoEntity.setRecommendedDiff(Double.parseDouble(mongoEntity.getRecommendedPrice()) - Double.parseDouble(program.getPrice()) + "");
                 }
             }
-            programs = Arrays.asList(programArr);
+
+            List<Program> programsList = Arrays.asList(programArr);
+            Programs programs1 = new Programs();
+            for (Program prog :programsList) {
+                List<Program> newList= new ArrayList<>();
+                newList.add(prog);
+                programs1.setPrices(newList);
+                programs.add(programs1);
+            }
+
             mongoEntity.setPrograms(programs);
             mongoEntities.add(mongoEntity);
         }
@@ -521,12 +531,12 @@ public class DrugReportController {
             row.add(element.getQuantity());
             row.add(element.getZipcode());
 
-            row.add("$"+element.getPrograms().get(0).getPrice());
-            row.add("$"+element.getPrograms().get(6).getPrice());
-            row.add("$"+element.getPrograms().get(1).getPrice());
-            row.add("$"+element.getPrograms().get(2).getPrice());
-            row.add("$"+element.getPrograms().get(3).getPrice());
-            row.add("$"+element.getPrograms().get(4).getPrice());
+            row.add("$"+element.getPrograms().get(0).getPrices().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(6).getPrices().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(1).getPrices().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(2).getPrices().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(3).getPrices().get(0).getPrice());
+            row.add("$"+element.getPrograms().get(4).getPrices().get(0).getPrice());
             row.add("$"+element.getRecommendedPrice());
             row.add("$"+element.getRecommendedDiff());
             rows.add(row);
@@ -982,13 +992,7 @@ public class DrugReportController {
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
         PrintStream fileStream = null;
         String fileName = "/home/files/poi-generated-file.xlsx";
-//        try {
-//            fileStream = new PrintStream("api_log.txt");
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//
-//        System.setOut(fileStream);
+
         Workbook workbook = new XSSFWorkbook();
 
         CreationHelper createHelper = workbook.getCreationHelper();
@@ -997,7 +1001,7 @@ public class DrugReportController {
 
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
-//        headerFont.setFontHeightInPoints((short) 14);
+
         headerFont.setColor(IndexedColors.BLACK.getIndex());
 
         CellStyle headerCellStyle = workbook.createCellStyle();

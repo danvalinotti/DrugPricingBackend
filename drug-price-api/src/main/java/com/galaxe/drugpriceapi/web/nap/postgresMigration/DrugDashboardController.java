@@ -14,6 +14,7 @@ import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.*;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
 import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
 import com.galaxe.drugpriceapi.web.nap.ui.Program;
+import com.galaxe.drugpriceapi.web.nap.ui.Programs;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -92,7 +93,7 @@ public class DrugDashboardController {
                 mongoEntity.setZipcode(drugMaster.getZipCode());
 
                 List<Price> prices = priceRepository.findByDrugDetailsId(drugMaster.getId());
-                List<Program> programs = new ArrayList<>();
+                List<Programs> programs = new ArrayList<>();
                 mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
                 mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
                 Program[] programArr = new Program[6];
@@ -113,9 +114,16 @@ public class DrugDashboardController {
                     //programs.add(program);
                     programArr[p.getProgramId()] = program;
                 }
-                programs = Arrays.asList(programArr);
 
 
+                List<Program> programsList = Arrays.asList(programArr);
+                Programs programs1 = new Programs();
+                for (Program prog :programsList) {
+                    List<Program> newList= new ArrayList<>();
+                    newList.add(prog);
+                    programs1.setPrices(newList);
+                    programs.add(programs1);
+                }
                 mongoEntity.setPrograms(programs);
                 mongoEntities.add(mongoEntity);
             }catch(Exception ex){

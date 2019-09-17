@@ -33,7 +33,7 @@ public class MongoEntity {
 
     private String ndc;
 
-    private List<Program> programs;
+    private List<Programs> programs;
 
     private Set<String> pharmacyName;
 

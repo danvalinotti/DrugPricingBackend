@@ -107,15 +107,15 @@ public class MasterListService {
 
                 for (int i = 0; i < record.getPrograms().size(); i++) {
                     try {
-                        Double newPrice = Double.parseDouble(record.getPrograms().get(i).getPrice());
-                        Double oldPrice = Double.parseDouble(oldRecord.getPrograms().get(i).getPrice());
+                        Double newPrice = Double.parseDouble(record.getPrograms().get(i).getPrices().get(0).getPrice());
+                        Double oldPrice = Double.parseDouble(oldRecord.getPrograms().get(i).getPrices().get(0).getPrice());
 
                         Double diff = newPrice - oldPrice;
-                        record.getPrograms().get(i).setDiff(diff.toString());
+                        record.getPrograms().get(i).getPrices().get(0).setDiff(diff.toString());
                     } catch (NumberFormatException e) {
-                        record.getPrograms().get(i).setDiff("0.00");
+                        record.getPrograms().get(i).getPrices().get(0).setDiff("0.00");
                     } catch (NullPointerException e) {
-                        record.getPrograms().get(i).setDiff("0.00");
+                        record.getPrograms().get(i).getPrices().get(0).setDiff("0.00");
                     }
 
                 }

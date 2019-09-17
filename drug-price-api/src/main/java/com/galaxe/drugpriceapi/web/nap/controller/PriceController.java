@@ -16,10 +16,7 @@ import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
 import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.RandomPassword;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
-import com.galaxe.drugpriceapi.web.nap.ui.DrugBrandInfo;
-import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
-import com.galaxe.drugpriceapi.web.nap.ui.Program;
-import com.galaxe.drugpriceapi.web.nap.ui.ZipcodeConverter;
+import com.galaxe.drugpriceapi.web.nap.ui.*;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
 import com.mongodb.Mongo;
 import org.decimal4j.util.DoubleRounder;
@@ -263,7 +260,7 @@ public class PriceController {
         }
         DrugMaster d = new DrugMaster();
         MongoEntity mongoEntity = new MongoEntity();
-        List<Program> programs = new ArrayList<>();
+        List<Programs> programs = new ArrayList<>();
         List<Price> prices = new ArrayList<>();
         try {
 
@@ -308,17 +305,32 @@ public class PriceController {
                 else if (i == 6) {
                     program = "GoodRx";
                 }
+                Programs programPrices = new Programs();
                 if (priceIndex< prices.size() &&i == prices.get(priceIndex).getProgramId()) {
                     try {
                         Price p = prices.get(priceIndex);
                         String diffPerc = ((p.getDifference() / (p.getPrice() + p.getDifference())) * 100) + "";
-                        programs.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
+
+                        List<Program> programsList = new ArrayList<>();
+                        programsList.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
+
+                        programPrices.setPrices(programsList);
+                        programs.add(programPrices);
+
                         priceIndex++;
                     }catch(Exception e){
-                        programs.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                        List<Program> programsList = new ArrayList<>();
+                        programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                        Programs programs1 = new Programs();
+                        programs1.setPrices(programsList);
+                        programs.add(programs1);
                     }
                 } else {
-                    programs.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                    Programs programs1 = new Programs();
+                    programs1.setPrices(programsList);
+                    programs.add(programs1);
                 }
             }
 
@@ -617,80 +629,163 @@ public class PriceController {
         String recommended;
         SortedSet<Double> recommendedPriceSet = new TreeSet<>();
 
-        List<Program> programs = new ArrayList<>();
+        List<Programs> programs = new ArrayList<>();
         finalDrugObject.setName(reqObject.getDrugName());
 
         if (!CollectionUtils.isEmpty(insideRxProgramResult.get(0).getPrices())) {
-            programs.add(new Program("insideRx", insideRxProgramResult.get(0).getPrices().get(0).getPharmacy().getName().toUpperCase(), insideRxProgramResult.get(0).getPrices().get(0).getPrice(), "0.0", "0.0"));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("insideRx", insideRxProgramResult.get(0).getPrices().get(0).getPharmacy().getName().toUpperCase(), insideRxProgramResult.get(0).getPrices().get(0).getPrice(), "0.0", "0.0"));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
             recommendedPriceSet.add(Double.parseDouble(insideRxProgramResult.get(0).getPrices().get(0).getPrice()));
         } else {
-            programs.add(new Program("insideRx", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("insideRx", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
         try {
             if (!CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList())) {
-                programs.add(new Program("usPharmacyCard", usCardProgramResult.get(0).getPriceList().get(0).getPharmacy().getPharmacyName().toUpperCase(), usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice(), "0.0", "0.0"));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("usPharmacyCard", usCardProgramResult.get(0).getPriceList().get(0).getPharmacy().getPharmacyName().toUpperCase(), usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
                 recommendedPriceSet.add(Double.parseDouble(usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice()));
             } else {
-                programs.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
             }
         } catch (Exception ex) {
-            programs.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
         if (!CollectionUtils.isEmpty(wellRxProgramResult)) {
-            programs.add(new Program("wellRx", wellRxProgramResult.get(0).getPharmacyName().toUpperCase(), wellRxProgramResult.get(0).getPrice(), "0.0", "0.0"));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("wellRx", wellRxProgramResult.get(0).getPharmacyName().toUpperCase(), wellRxProgramResult.get(0).getPrice(), "0.0", "0.0"));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
             recommendedPriceSet.add(Double.parseDouble(wellRxProgramResult.get(0).getPrice()));
         } else {
-            programs.add(new Program("wellRx", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("wellRx", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (medImpactLocatedDrug != null) {
             if (medImpactLocatedDrug.getPricing() != null && medImpactLocatedDrug.getPharmacy() != null) {
                 recommendedPriceSet.add(Double.parseDouble(medImpactLocatedDrug.getPricing().getPrice()));
-                programs.add(new Program("medImpact", medImpactLocatedDrug.getPharmacy().getName().toUpperCase(), medImpactLocatedDrug.getPricing().getPrice(), "0.0", "0.0"));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("medImpact", medImpactLocatedDrug.getPharmacy().getName().toUpperCase(), medImpactLocatedDrug.getPricing().getPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
             } else {
-                programs.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
 
             }
         } else {
-            programs.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (singlecarePrice != null) {
             if (!CollectionUtils.isEmpty(singlecarePrice.getPrices()) && singlecarePrice.getPharmacy() != null) {
                 recommendedPriceSet.add(Double.parseDouble(singlecarePrice.getPrices().get(0).getPrice()));
-                programs.add(new Program("singlecare", singlecarePrice.getPharmacy().getName().toUpperCase(), singlecarePrice.getPrices().get(0).getPrice(), "0.0", "0.0"));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("singlecare", singlecarePrice.getPharmacy().getName().toUpperCase(), singlecarePrice.getPrices().get(0).getPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
             } else {
-                programs.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
             }
         } else {
-            programs.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (blink != null) {
             if (blink.getPrice() != null && blink.getResults() != null) {
                 try {
                     recommendedPriceSet.add(Double.parseDouble(blink.getPrice().getLocal().getRaw_value()));
-                    programs.add(new Program("blink", blink.getResults().getName(), blink.getPrice().getLocal().getRaw_value(), ZERO, ZERO));
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program("blink", blink.getResults().getName(), blink.getPrice().getLocal().getRaw_value(), ZERO, ZERO));
+                    Programs p = new Programs();
+                    p.setPrices(programsList);
+                    programs.add(p);
                 } catch (NullPointerException e) {
-                    programs.add(new Program("blink", NA, NA, ZERO, ZERO));
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+                    Programs p = new Programs();
+                    p.setPrices(programsList);
+                    programs.add(p);
+
 
                 }
             } else {
-                programs.add(new Program("blink", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
             }
         } else {
-            programs.add(new Program("blink", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
         }
-
-        programs.add(new Program("GoodRx", "Coming soon", NA, ZERO, ZERO));
+        List<Program> programsList = new ArrayList<>();
+        programsList.add(new Program("GoodRx", "Coming soon", NA, ZERO, ZERO));
+        Programs p = new Programs();
+        p.setPrices(programsList);
+        programs.add(p);
 
         finalDrugObject.setPrograms(programs);
 
         try {
             recommended = String.valueOf(DoubleRounder.round(recommendedPriceSet.first(), 2));
 
-            for (Double p : recommendedPriceSet) {
-                sum += p;
+            for (Double price : recommendedPriceSet) {
+                sum += price;
             }
 
             finalDrugObject.setAverage(String.valueOf(DoubleRounder.round(sum / recommendedPriceSet.size(), 2)));
@@ -750,8 +845,8 @@ public class PriceController {
         finalDrugObject.setQuantity(String.valueOf(reqObject.getQuantity()));
         finalDrugObject.setZipcode(reqObject.getZipcode());
         finalDrugObject.setId(finalDrugObject.getCompositeId(finalDrugObject.getNdc(), finalDrugObject.getDosageStrength(), finalDrugObject.getQuantity(), finalDrugObject.getZipcode()));
-        if (!programs.get(0).getPrice().equalsIgnoreCase("N/A")) {
-            finalDrugObject.setRecommendedDiff(String.valueOf(Double.parseDouble(recommended) - Double.parseDouble(programs.get(0).getPrice())));
+        if (!programs.get(0).getPrices().get(0).getPrice().equalsIgnoreCase("N/A")) {
+            finalDrugObject.setRecommendedDiff(String.valueOf(Double.parseDouble(recommended) - Double.parseDouble(programs.get(0).getPrices().get(0).getPrice())));
         }
         finalDrugObject.setAverageDiff("0.0");
 
@@ -773,32 +868,32 @@ public class PriceController {
                 aveDiff = (Double.parseDouble(mongoObjects.get().getAverage()) - Double.parseDouble(currentObject.getAverage()));
 
             if (!currentObject.getRecommendedPrice().equalsIgnoreCase(NA))
-                recommendedDiff = Double.parseDouble(currentObject.getRecommendedPrice()) - (Double.parseDouble(currentObject.getPrograms().get(0).getPrice()));
+                recommendedDiff = Double.parseDouble(currentObject.getRecommendedPrice()) - (Double.parseDouble(currentObject.getPrograms().get(0).getPrices().get(0).getPrice()));
 
             currentObject.setAverageDiff(String.valueOf(aveDiff));
 
             currentObject.setRecommendedDiff(String.valueOf(recommendedDiff));
 
             if (!CollectionUtils.isEmpty(mongoObjects.get().getPrograms()) && !CollectionUtils.isEmpty(currentObject.getPrograms())) {
-                List<Program> mongoPrograms = mongoObjects.get().getPrograms();
-                List<Program> currPrograms = currentObject.getPrograms();
+                List<Programs> mongoPrograms = mongoObjects.get().getPrograms();
+                List<Programs> currPrograms = currentObject.getPrograms();
 
                 mongoPrograms.forEach(mongo -> {
 
-                    for (Program curr : currPrograms) {
+                    for (Programs curr : currPrograms) {
 
-                        if (curr.getProgram().equalsIgnoreCase(mongo.getProgram())) {
+                        if (curr.getPrices().get(0).getProgram().equalsIgnoreCase(mongo.getPrices().get(0).getProgram())) {
 
-                            if (!curr.getPrice().equalsIgnoreCase(NA) && !curr.getPrice().isEmpty()) {
+                            if (!curr.getPrices().get(0).getPrice().equalsIgnoreCase(NA) && !curr.getPrices().get(0).getPrice().isEmpty()) {
 
                                 Double diff, sum;
-                                if (!mongo.getPrice().contains(NA)) {
+                                if (!mongo.getPrices().get(0).getPrice().contains(NA)) {
 
-                                    diff = ((Double.parseDouble(mongo.getPrice())) - Double.parseDouble(curr.getPrice()));
-                                    sum = Double.parseDouble(mongo.getPrice()) + Double.parseDouble(curr.getPrice());
+                                    diff = ((Double.parseDouble(mongo.getPrices().get(0).getPrice())) - Double.parseDouble(curr.getPrices().get(0).getPrice()));
+                                    sum = Double.parseDouble(mongo.getPrices().get(0).getPrice()) + Double.parseDouble(curr.getPrices().get(0).getPrice());
                                     double p = (diff / (sum / 2)) * 100d;
-                                    curr.setDiff(String.valueOf(diff));
-                                    curr.setDiffPerc(String.valueOf(p));
+                                    curr.getPrices().get(0).setDiff(String.valueOf(diff));
+                                    curr.getPrices().get(0).setDiffPerc(String.valueOf(p));
 
                                 }
 
