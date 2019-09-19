@@ -579,84 +579,97 @@ public class DrugReportController {
     @GetMapping("/asd/{r}")
     public ResponseEntity<Resource> getReportRows(@PathVariable String r){
         Integer reportId = Integer.parseInt(r);
-        List<List<String>> rows = new ArrayList<>();
-        List<String> data0 = new ArrayList<>();
-        data0.add("Drug Name");
-        data0.add("Drug NDC");
-        data0.add("Drug GSN");
-        data0.add("Dosage Strength");
-        data0.add("Quantity");
-        data0.add("Zip Code");
-        data0.add("InsideRx Price");
-        data0.add("InsideRx Pharmacy");
-        data0.add("GoodRx Price");
-        data0.add("GoodRx Pharmacy");
-        data0.add("U.S Pharmacy Card Price");
-        data0.add("U.S Pharmacy Card Pharmacy");
-        data0.add("WellRx Price");
-        data0.add("WellRx Pharmacy");
-        data0.add("MedImpact Price");
-        data0.add("MedImpact Pharmacy");
-        data0.add("Singlecare Price");
-        data0.add("Singlecare Pharmacy");
-        data0.add("Blink Price");
-        data0.add("Blink Pharmacy");
-        data0.add("Recommended Price");
-        data0.add("Difference Price");
-        rows.add(data0);
-        List<ReportRow>reportRows = this.reportRowRepository.exportReport(reportId);
-        for (ReportRow reportRow:reportRows) {
 
-            List<String> data = new ArrayList<>();
-            data.add(reportRow.name);
-            data.add(reportRow.getNdc());
-            try{
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
-                String gsn = drugRequest.getGsn();
-                data.add(gsn);
-            }catch (Exception ex){
-                data.add(reportRow.getGsn());
+
+        List<List<List<String>>> sheets = new ArrayList<>();
+        List<String> zipCodes = new ArrayList<>();
+        zipCodes.add("90036");
+        zipCodes.add("30606");
+        zipCodes.add("60639");
+        zipCodes.add("10023");
+        zipCodes.add("75034");
+        for (String zip: zipCodes) {
+
+            List<ReportRow>reportRows = this.reportRowRepository.exportReportByZipCode(reportId, zip);
+            List<List<String>> rows = new ArrayList<>();
+            List<String> data0 = new ArrayList<>();
+            data0.add("Drug Name");
+            data0.add("Drug NDC");
+            data0.add("Drug GSN");
+            data0.add("Dosage Strength");
+            data0.add("Quantity");
+            data0.add("Zip Code");
+            data0.add("InsideRx Price");
+            data0.add("InsideRx Pharmacy");
+            data0.add("GoodRx Price");
+            data0.add("GoodRx Pharmacy");
+            data0.add("U.S Pharmacy Card Price");
+            data0.add("U.S Pharmacy Card Pharmacy");
+            data0.add("WellRx Price");
+            data0.add("WellRx Pharmacy");
+            data0.add("MedImpact Price");
+            data0.add("MedImpact Pharmacy");
+            data0.add("Singlecare Price");
+            data0.add("Singlecare Pharmacy");
+            data0.add("Blink Price");
+            data0.add("Blink Pharmacy");
+            data0.add("Recommended Price");
+            data0.add("Difference Price");
+            rows.add(data0);
+            for (ReportRow reportRow:reportRows) {
+
+                List<String> data = new ArrayList<>();
+                data.add(reportRow.name);
+                data.add(reportRow.getNdc());
+                try{
+                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
+                    String gsn = drugRequest.getGsn();
+                    data.add(gsn);
+                }catch (Exception ex){
+                    data.add(reportRow.getGsn());
+                }
+
+
+                data.add(reportRow.dosage_strength);
+                data.add(reportRow.quantity);
+                data.add(reportRow.getZip_code());
+                try{data.add(new BigDecimal(reportRow.insiderx_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals(""))
+                {data.add(reportRow.insiderx_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.goodrx_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals(""))
+                {data.add(reportRow.goodrx_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.pharm_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals(""))
+                {data.add(reportRow.pharm_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.wellrx_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals(""))
+                {data.add(reportRow.wellrx_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.medimpact_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals(""))
+                {data.add(reportRow.medimpact_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.singlecare_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals(""))
+                {data.add(reportRow.singlecare_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.blink_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals(""))
+                {data.add(reportRow.blink_pharmacy);}else{data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.recommended_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                rows.add(data);
             }
-
-
-            data.add(reportRow.dosage_strength);
-            data.add(reportRow.quantity);
-            data.add(reportRow.getZip_code());
-            try{data.add(new BigDecimal(reportRow.insiderx_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals(""))
-            {data.add(reportRow.insiderx_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.goodrx_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals(""))
-            {data.add(reportRow.goodrx_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.pharm_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals(""))
-            {data.add(reportRow.pharm_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.wellrx_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals(""))
-            {data.add(reportRow.wellrx_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.medimpact_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals(""))
-            {data.add(reportRow.medimpact_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.singlecare_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals(""))
-            {data.add(reportRow.singlecare_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.blink_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals(""))
-            {data.add(reportRow.blink_pharmacy);}else{data.add("N/A");}
-            try{data.add(new BigDecimal(reportRow.recommended_price)
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
-                    .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-            rows.add(data);
+            sheets.add(rows);
         }
-        return exportManualReport(rows);
+        return exportManualReportMultipleSheets(sheets);
 
     }
 
@@ -1095,6 +1108,99 @@ public class DrugReportController {
         for (int i = 0; i < rows.get(0).size(); i++) {
             sheet.autoSizeColumn(i);
 
+        }
+        FileOutputStream fileOut;
+        InputStreamResource resource = null;
+        try {
+            fileOut = new FileOutputStream(fileName);
+            InputStream fileInputStream = new FileInputStream(fileName);
+            resource = new InputStreamResource(new FileInputStream(fileName));
+//            fileOut = new FileOutputStream("poi-generated-file.xlsx");
+//            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
+//            resource = new InputStreamResource(new FileInputStream("poi-generated-file.xlsx"));
+            workbook.write(fileOut);
+
+            fileOut.close();
+            workbook.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        File file = new File(fileName);
+//        File file = new File("/home/files/poi-generated-file.xlsx");
+        System.out.println(file.length());
+        //we are saying we are getting an attachment and what to name it
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "poi-generated-file.xlsx");
+        return ResponseEntity.ok()
+                .headers(headers)
+                // .contentLength(resumelength)
+                .contentLength(file.length())
+                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                .body(resource);
+
+    }
+
+    public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<List<String>>> rows) {
+        PrintStream fileStream = null;
+        String fileName = "poi-generated-file.xlsx";
+
+        Workbook workbook = new XSSFWorkbook();
+
+        CreationHelper createHelper = workbook.getCreationHelper();
+
+        Sheet sheet1 = workbook.createSheet("90036");
+        Sheet sheet2 = workbook.createSheet("30606");
+        Sheet sheet3 = workbook.createSheet("60639");
+        Sheet sheet4 = workbook.createSheet("10023");
+        Sheet sheet5 = workbook.createSheet("75034");
+
+        List<Sheet> sheets = new ArrayList<>();
+        sheets.add(sheet1);
+        sheets.add(sheet2);
+        sheets.add(sheet3);
+        sheets.add(sheet4);
+        sheets.add(sheet5);
+
+        for (int s = 0 ; s <rows.size();s++) {
+            Sheet sheet = sheets.get(s);
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+
+            headerFont.setColor(IndexedColors.BLACK.getIndex());
+
+            CellStyle headerCellStyle = workbook.createCellStyle();
+            headerCellStyle.setFont(headerFont);
+
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < rows.get(s).get(0).size(); i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(rows.get(s).get(0).get(i));
+                cell.setCellStyle(headerCellStyle);
+            }
+            int count = 0;
+            System.out.println("Starting rows");
+//        System.out.println(rows);
+            for (List<String> row : rows.get(s)) {
+                if (count == 0) {
+
+                } else {
+                    Row r = sheet.createRow(count);
+
+                    int cellCount = 0;
+                    for (String cell : row) {
+                        r.createCell(cellCount).setCellValue(cell);
+
+                        cellCount++;
+                    }
+                    cellCount = 0;
+                }
+                count++;
+            }
+            System.out.println("Rows finished");
+            for (int i = 0; i < rows.get(0).size(); i++) {
+                sheet.autoSizeColumn(i);
+
+            }
         }
         FileOutputStream fileOut;
         InputStreamResource resource = null;
