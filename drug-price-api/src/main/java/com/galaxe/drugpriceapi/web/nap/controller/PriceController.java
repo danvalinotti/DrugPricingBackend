@@ -270,17 +270,20 @@ public class PriceController {
             prices = priceRepository.findRecentPricesByDrugId(d.getId(), reportRepository.findFirstByOrderByTimestampDesc().getId());
             mongoEntity.setRecommendedDiff("0.00");
             List<Integer> programIds = new ArrayList<>();
+            List<Price> duplicatePrices = new ArrayList<>();
             int count = 0;
             for (Price p : prices) {
                 if(!programIds.contains(p.getProgramId())){
 
-                    programIds.add(p.getDrugDetailsId());
+                    programIds.add(p.getProgramId());
                 }else{
                     System.out.println("REMOVE");
-                    prices.remove(count) ;
+                    duplicatePrices.add(p);
+
                 }
                 count++;
             }
+            prices.removeAll(duplicatePrices) ;
             System.out.println(prices.size());
             String average = getAverage(prices);
             mongoEntity.setAverage(average);
@@ -324,6 +327,7 @@ public class PriceController {
                         Programs programs1 = new Programs();
                         programs1.setPrices(programsList);
                         programs.add(programs1);
+                        priceIndex++;
                     }
                 } else {
                     List<Program> programsList = new ArrayList<>();
@@ -331,6 +335,7 @@ public class PriceController {
                     Programs programs1 = new Programs();
                     programs1.setPrices(programsList);
                     programs.add(programs1);
+                    priceIndex++;
                 }
             }
 

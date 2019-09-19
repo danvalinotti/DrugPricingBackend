@@ -23,14 +23,21 @@ public class ReportRow {
     String dosage_strength;
     String quantity;
     String name ;
+    String drug_id;
     String insiderx_price ;
+    String insiderx_pharmacy ;
     String goodrx_price ;
+    String goodrx_pharmacy  ;
     String medimpact_price ;
+    String medimpact_pharmacy ;
     String wellrx_price ;
+    String wellrx_pharmacy  ;
     String blink_price ;
+    String blink_pharmacy  ;
     String singlecare_price ;
+    String singlecare_pharmacy  ;
     String pharm_price ;
-
+    String pharm_pharmacy  ;
     String recommended_price;
 
 

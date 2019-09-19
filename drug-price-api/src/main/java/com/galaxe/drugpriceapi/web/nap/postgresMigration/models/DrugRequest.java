@@ -19,7 +19,7 @@ public class DrugRequest {
     @GeneratedValue
     int id;
     @Column
-    int drugId;
+    String drugId;
     @Column
     int programId;
     @Column

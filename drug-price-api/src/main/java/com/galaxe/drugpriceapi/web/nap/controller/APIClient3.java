@@ -50,24 +50,24 @@ public class APIClient3 {
                 if(price.join().getLocal().getRaw_value()!="") {
                     int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
                   try {
-                      int size = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).size();
+                      int size = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 5).size();
                   }catch (Exception ex){
                       ex.printStackTrace();
                   }
-                    if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).size() == 0) {
+                    if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 5).size() == 0) {
                         DrugRequest drugRequest = new DrugRequest();
                         drugRequest.setZipcode(requestObject.getZipcode());
                         drugRequest.setDrugName(requestObject.getDrugName().replace(" ", "-"));
                         drugRequest.setProgramId(5);
                         drugRequest.setGsn(price.join().getMedId());
-                        drugRequest.setDrugId(drugId);
+                        drugRequest.setDrugId(drugId+"");
                         drugRequestRepository.save(drugRequest);
                     } else {
-                        DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 5).get(0);
+                        DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 5).get(0);
                         drugRequest.setZipcode(requestObject.getZipcode());
                         drugRequest.setDrugName(requestObject.getDrugName().replace(" ", "-"));
                         drugRequest.setProgramId(5);
-                        drugRequest.setDrugId(drugId);
+                        drugRequest.setDrugId(drugId+"");
                         drugRequestRepository.save(drugRequest);
                     }
                 }

@@ -11,8 +11,8 @@ import java.util.List;
 @Repository
 public interface DrugRequestRepository extends JpaRepository<DrugRequest,Integer> {
 
-    List<DrugRequest> findByDrugIdAndProgramId(int drugId, Integer i);
     List<DrugRequest> findByDrugIdAndProgramId(String drugId, Integer i);
+//    List<DrugRequest> findByDrugIdAndProgramId(String drugId, Integer i);
     @Query(value = "WITH summary AS ( " +
             " SELECT d.id, d.brand_indicator, d.drug_id, d.drug_name,d.gsn, d.latitude, d.longitude, " +
             "   d.program_id, m.ndc, m.quantity, d.zipcode, d.good_rx_id, " +

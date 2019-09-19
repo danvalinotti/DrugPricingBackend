@@ -65,9 +65,9 @@ public class APIClient {
         try {
             drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
-            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 4);
+            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 4);
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).size() != 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 4).size() != 0) {
                 String json = gson.toJson(constructSinglecarePostObject(drugRequests.get(0)));
 //                System.out.println("DrugSaved");
                 if(drugRequests.get(0).getDrugName() == null || drugRequests.get(0).getDrugName().equals("")){
@@ -214,7 +214,7 @@ public class APIClient {
 
         try {
             int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 4).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 try {
                     drugRequest.setDrugName(requestObject.getDrugName());
@@ -222,7 +222,7 @@ public class APIClient {
 
                 }
                 drugRequest.setProgramId(4);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setNdc(requestObject.getDrugNDC());
                 drugRequest.setQuantity(String.valueOf(requestObject.getQuantity()));
                 drugRequest.setZipcode(requestObject.getZipcode());
@@ -234,14 +234,14 @@ public class APIClient {
                 }
                 drugRequestRepository.save(drugRequest);
             }else{
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 4).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 4).get(0);
                 drugRequest.setProgramId(4);
                 try {
                     drugRequest.setDrugName(requestObject.getDrugName());
                 }catch(Exception ex){
 
                 }
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setNdc(requestObject.getDrugNDC());
                 drugRequest.setQuantity(String.valueOf(requestObject.getQuantity()));
                 drugRequest.setZipcode(requestObject.getZipcode());
@@ -265,9 +265,9 @@ public class APIClient {
         try {
             drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
-            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 3);
+            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3);
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() != 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3).size() != 0) {
                 if(drugRequests.get(0).getDrugName() == null || drugRequests.get(0).getDrugName().equals("")){
                     drugRequests.get(0).setDrugName(requestObject.getDrugName());
                     drugRequestRepository.save(drugRequests.get(0));
@@ -389,10 +389,10 @@ public class APIClient {
 
         try {
             int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(3);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setDrugName(requestObject.getDrugName());
                 drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
                 drugRequest.setLatitude(latLong.get("latitude"));
@@ -400,9 +400,9 @@ public class APIClient {
 
                 drugRequestRepository.save(drugRequest);
             }else{
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3).get(0);
                 drugRequest.setProgramId(3);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setDrugName(requestObject.getDrugName());
                 drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
                 drugRequest.setLatitude(latLong.get("latitude"));
@@ -436,10 +436,10 @@ public class APIClient {
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";
         try {
             int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(3);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setQuantity(requestObject.getQuantity() + "");
                 drugRequest.setGsn(gsn);
                 drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
@@ -452,9 +452,9 @@ public class APIClient {
                 }
                 drugRequestRepository.save(drugRequest);
             }else{
-               DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 3).get(0);
+               DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 3).get(0);
                 drugRequest.setProgramId(3);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setQuantity(requestObject.getQuantity() + "");
                 drugRequest.setGsn(gsn);
                 drugRequest.setBrandIndicator(Brand_indicator.toUpperCase());
@@ -484,11 +484,11 @@ public class APIClient {
 
             drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
 
-            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 0);
+            List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0);
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).size() != 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0).size() != 0) {
 
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0).get(0);
                 if(drugRequest.getDrugName() == null || drugRequest.getDrugName().equals("")){
                     drugRequest.setDrugName(requestObject.getDrugName());
                     drugRequestRepository.save(drugRequest);
@@ -514,10 +514,10 @@ public class APIClient {
         List<InsideRx> insideRxList = new ArrayList<>();
         try {
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(0);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setBrandIndicator(requestObject.getDrugType());
                 drugRequest.setLongitude(postObject.getLongitude());
                 drugRequest.setLatitude(postObject.getLatitude());
@@ -531,9 +531,9 @@ public class APIClient {
                 drugRequestRepository.save(drugRequest);
             }else{
 
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 0).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0).get(0);
                 drugRequest.setProgramId(0);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setBrandIndicator(requestObject.getDrugType());
                 drugRequest.setLatitude(postObject.getLatitude());
                 drugRequest.setLongitude(postObject.getLongitude());
@@ -646,7 +646,7 @@ public class APIClient {
             if(drugId == 265659){
                 System.out.println("ACYCLOVIR");
             }
-            drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 6);
+            drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 6);
             drugRequest =drugRequests.get(0);
 
             if (drugRequestRepository.findByDrugIdAndProgramId(drugRequest.getDrugId(), 6).size() != 0) {

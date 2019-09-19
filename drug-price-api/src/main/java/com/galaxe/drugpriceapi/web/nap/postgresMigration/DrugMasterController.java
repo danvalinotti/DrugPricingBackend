@@ -85,7 +85,7 @@ public class DrugMasterController {
         for (DrugMaster drugMaster:drugMasters ) {
             String gsn ="";
             try {
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 2).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId()+"", 2).get(0);
                 gsn = drugRequest.getGsn();
                 drugMaster.setGsn(gsn);
                 drugMasterRepository.save(drugMaster);

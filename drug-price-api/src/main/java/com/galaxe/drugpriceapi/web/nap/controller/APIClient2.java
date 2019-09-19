@@ -70,10 +70,10 @@ public class APIClient2 {
 
                 drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
 
-                List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2);
-                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() != 0) {
+                List<DrugRequest> drugRequests = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2);
+                if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).size() != 0) {
 
-                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
+                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).get(0);
                     if (drugRequest.getDrugName() == null || drugRequest.getDrugName().equals("")) {
                         drugRequest.setDrugName(requestObject.getDrugName());
                         drugRequestRepository.save(drugRequest);
@@ -175,7 +175,7 @@ public class APIClient2 {
                             //INSERT DRUGREQUESET
                             try {
                                 drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(), requestObject.getZipcode()).get(0).getId();
-                                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
+                                if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).size() == 0) {
                                     DrugRequest drugRequest = new DrugRequest();
                                     drugRequest.setProgramId(2);
                                     Drugs savedDrug = result.join().get(0);
@@ -187,7 +187,7 @@ public class APIClient2 {
                                     drugRequest.setDrugName(requestObject.getDrugName());
                                     drugRequestRepository.save(drugRequest);
                                 } else {
-                                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
+                                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).get(0);
                                     drugRequest.setProgramId(2);
                                     Drugs savedDrug = result.join().get(0);
                                     drugRequest.setGsn(savedDrug.getGSN());
@@ -342,12 +342,12 @@ public class APIClient2 {
                             drugMaster.setGsn(obj.getGSN());
                             drugMasterRepository.save(drugMaster);
 
-                            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 1).size() > 0) {
-                                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 2).get(0);
+                            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 1).size() > 0) {
+                                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId()+"", 2).get(0);
                                 drugRequest.setGsn(wellRxSpecificDrugs.get(0).getGSN());
                                 drugRequestRepository.save(drugRequest);
                                 try {
-                                    DrugRequest drugRequest2 = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId(), 3).get(0);
+                                    DrugRequest drugRequest2 = drugRequestRepository.findByDrugIdAndProgramId(drugMaster.getId()+"", 3).get(0);
                                     drugRequest2.setGsn(wellRxSpecificDrugs.get(0).getGSN());
                                     drugRequestRepository.save(drugRequest2);
                                 } catch (Exception ex) {
@@ -562,11 +562,11 @@ public class APIClient2 {
         try {
             drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
 
-            List<DrugRequest>drugRequests= drugRequestRepository.findByDrugIdAndProgramId(drugId,1);
+            List<DrugRequest>drugRequests= drugRequestRepository.findByDrugIdAndProgramId(drugId+"",1);
 
-            if(drugRequestRepository.findByDrugIdAndProgramId(drugId,1).size() != 0){
+            if(drugRequestRepository.findByDrugIdAndProgramId(drugId+"",1).size() != 0){
 
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId,1).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"",1).get(0);
 
                 webClient= WebClient.create("https://api.uspharmacycard.com/drug/price/147/020982/" + drugRequest.getZipcode()
                         + "/" + drugRequest.getNdc() + "/" + drugRequest.getDrugName() + "/" + drugRequest.getBrandIndicator() + "/" + drugRequest.getQuantity() + "/10");
@@ -593,10 +593,10 @@ public class APIClient2 {
                     .collectList().block();
             try {
 
-                if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 1).size() == 0) {
+                if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 1).size() == 0) {
                     DrugRequest drugRequest = new DrugRequest();
                     drugRequest.setProgramId(1);
-                    drugRequest.setDrugId(drugId);
+                    drugRequest.setDrugId(drugId+"");
                     drugRequest.setZipcode(requestObject.getZipcode());
                     drugRequest.setNdc(requestObject.getDrugNDC());
                     drugRequest.setDrugName(requestObject.getDrugName());
@@ -604,9 +604,9 @@ public class APIClient2 {
                     drugRequest.setQuantity(requestObject.getQuantity() + "");
                     drugRequestRepository.save(drugRequest);
                 }else{
-                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 1).get(0);
+                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 1).get(0);
                     drugRequest.setProgramId(1);
-                    drugRequest.setDrugId(drugId);
+                    drugRequest.setDrugId(drugId+"");
                     drugRequest.setZipcode(requestObject.getZipcode());
                     drugRequest.setNdc(requestObject.getDrugNDC());
                     drugRequest.setDrugName(requestObject.getDrugName());
@@ -668,10 +668,10 @@ public class APIClient2 {
 
         try {
             int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(2);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setBrandIndicator(brandGenericPost.getBgIndicator());
                 drugRequest.setDrugName(brandGenericPost.getDrugname());
                 drugRequest.setLatitude(brandGenericPost.getLat());
@@ -679,9 +679,9 @@ public class APIClient2 {
                 drugRequestRepository.save(drugRequest);
             }else{
 
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0);
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).get(0);
                 drugRequest.setProgramId(2);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 drugRequest.setBrandIndicator(brandGenericPost.getBgIndicator());
                 drugRequest.setDrugName(brandGenericPost.getDrugname());
                 drugRequest.setLatitude(brandGenericPost.getLat());
@@ -765,7 +765,7 @@ public class APIClient2 {
 
         try {
             int drugId = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0).getId();
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setGsn(wellRxSpecifDrugPost.getGSN());
                 drugRequest.setBrandIndicator(wellRxSpecifDrugPost.getBgIndicator());
@@ -774,7 +774,7 @@ public class APIClient2 {
                 drugRequest.setLongitude(wellRxSpecifDrugPost.getLng());
                 drugRequest.setQuantity(wellRxSpecifDrugPost.getQuantity());
                 drugRequest.setProgramId(2);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
                 try {
                     drugRequest.setLatitude(requestObject.getLatitude());
                     drugRequest.setLongitude(requestObject.getLongitude());
@@ -783,7 +783,7 @@ public class APIClient2 {
                 }
                 drugRequestRepository.save(drugRequest);
             }else{
-                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId, 2).get(0) ;
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).get(0) ;
                 drugRequest.setGsn(wellRxSpecifDrugPost.getGSN());
                 drugRequest.setBrandIndicator(wellRxSpecifDrugPost.getBgIndicator());
                 drugRequest.setDrugName(wellRxSpecifDrugPost.getBReference());
@@ -791,7 +791,7 @@ public class APIClient2 {
                 drugRequest.setLongitude(wellRxSpecifDrugPost.getLng());
                 drugRequest.setQuantity(wellRxSpecifDrugPost.getQuantity());
                 drugRequest.setProgramId(2);
-                drugRequest.setDrugId(drugId);
+                drugRequest.setDrugId(drugId+"");
 
                 drugRequestRepository.save(drugRequest);
             }

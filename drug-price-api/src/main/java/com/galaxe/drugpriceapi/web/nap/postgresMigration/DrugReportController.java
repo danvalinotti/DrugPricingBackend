@@ -102,6 +102,35 @@ public class DrugReportController {
 
 
     }
+    @GetMapping(value = "/remove/price/duplicates")
+    public void removeDuplicatePrices() throws Throwable {
+        Report lastReport = reportRepository.findFirstByOrderByTimestampDesc();
+
+        List<Report_Drugs> report_drugs = reportDrugsRepository.findByReportId(lastReport.getId());
+        List<Price> prices  = new ArrayList<>();
+        List<Integer> priceIds= new ArrayList<>();
+        for (Report_Drugs reportDrug: report_drugs ) {
+            priceIds.add(reportDrug.getPriceId());
+
+        }
+        prices = priceRepository.findAllById(priceIds);
+
+        List<Integer> drug_ids = new ArrayList<>();
+        List<Price> deletePrices = new ArrayList<>();
+        for (Price price: prices) {
+            if(price.getProgramId() == 2){
+                if(!drug_ids.contains(price.getDrugDetailsId())){
+                    drug_ids.add(price.getDrugDetailsId());
+                }else{
+                    deletePrices.add(price);
+                }
+            }
+
+
+        }
+        priceRepository.deleteAll(deletePrices);
+
+    }
     @PostMapping("/report/add/drug/last")
     public void addToLastReport(@RequestBody RequestObject requestObject){
 
@@ -141,6 +170,7 @@ public class DrugReportController {
         addDrug(requestObject);
 
     }
+
 
     @PostMapping("/add/drug")
     public void addDrug(@RequestBody RequestObject requestObject){
@@ -226,7 +256,7 @@ public class DrugReportController {
         insideRequest.setLongitude(requestObject.getLongitude());
         insideRequest.setLatitude(requestObject.getLatitude());
         insideRequest.setQuantity(drugMaster.getQuantity()+"");
-        insideRequest.setDrugId(drugMaster.getId());
+        insideRequest.setDrugId(drugMaster.getId()+"");
         insideRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
         insideRequest.setProgramId(0);
         drugRequestRepository.save(insideRequest);
@@ -238,7 +268,7 @@ public class DrugReportController {
         usPharmRequest.setLongitude(requestObject.getLongitude());
         usPharmRequest.setLatitude(requestObject.getLatitude());
         usPharmRequest.setQuantity(drugMaster.getQuantity()+"");
-        usPharmRequest.setDrugId(drugMaster.getId());
+        usPharmRequest.setDrugId(drugMaster.getId()+"");
         usPharmRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
         drugRequestRepository.save(usPharmRequest);
 
@@ -275,7 +305,7 @@ public class DrugReportController {
         medImpactRequest.setLongitude(requestObject.getLongitude());
         medImpactRequest.setLatitude(requestObject.getLatitude());
         medImpactRequest.setQuantity(drugMaster.getQuantity()+"");
-        medImpactRequest.setDrugId(drugMaster.getId());
+        medImpactRequest.setDrugId(drugMaster.getId()+"");
         medImpactRequest.setBrandIndicator(brandTypes.get("short"));//BRAND / BRAND_WITH_GENERIC
         try {
             medImpactRequest.setGsn(drugMasterRepository.findById(drugMaster.getId()).get().getGsn());
@@ -291,7 +321,7 @@ public class DrugReportController {
         singleCareRequest.setLongitude(requestObject.getLongitude());
         singleCareRequest.setLatitude(requestObject.getLatitude());
         singleCareRequest.setQuantity(drugMaster.getQuantity()+"");
-        singleCareRequest.setDrugId(drugMaster.getId());
+        singleCareRequest.setDrugId(drugMaster.getId()+"");
         singleCareRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
         drugRequestRepository.save(singleCareRequest);
 
@@ -302,7 +332,7 @@ public class DrugReportController {
         singleCareRequest.setLongitude(requestObject.getLongitude());
         singleCareRequest.setLatitude(requestObject.getLatitude());
         singleCareRequest.setQuantity(drugMaster.getQuantity()+"");
-        singleCareRequest.setDrugId(drugMaster.getId());
+        singleCareRequest.setDrugId(drugMaster.getId()+"");
         singleCareRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
         drugRequestRepository.save(blinkHealth);
 
@@ -312,7 +342,7 @@ public class DrugReportController {
         goodRxRequest.setLongitude(requestObject.getLongitude());
         goodRxRequest.setLatitude(requestObject.getLatitude());
         goodRxRequest.setQuantity(drugMaster.getQuantity()+"");
-        goodRxRequest.setDrugId(drugMaster.getId());
+        goodRxRequest.setDrugId(drugMaster.getId()+"");
         goodRxRequest.setBrandIndicator(brandTypes.get("long"));//BRAND / BRAND_WITH_GENERIC
         goodRxRequest.setProgramId(6);
         drugRequestRepository.save(goodRxRequest);
@@ -556,14 +586,21 @@ public class DrugReportController {
         data0.add("Drug GSN");
         data0.add("Dosage Strength");
         data0.add("Quantity");
-
+        data0.add("Zip Code");
         data0.add("InsideRx Price");
+        data0.add("InsideRx Pharmacy");
         data0.add("GoodRx Price");
+        data0.add("GoodRx Pharmacy");
         data0.add("U.S Pharmacy Card Price");
+        data0.add("U.S Pharmacy Card Pharmacy");
         data0.add("WellRx Price");
+        data0.add("WellRx Pharmacy");
         data0.add("MedImpact Price");
+        data0.add("MedImpact Pharmacy");
         data0.add("Singlecare Price");
+        data0.add("Singlecare Pharmacy");
         data0.add("Blink Price");
+        data0.add("Blink Pharmacy");
         data0.add("Recommended Price");
         data0.add("Difference Price");
         rows.add(data0);
@@ -573,24 +610,46 @@ public class DrugReportController {
             List<String> data = new ArrayList<>();
             data.add(reportRow.name);
             data.add(reportRow.getNdc());
-            data.add(reportRow.getGsn());
+            try{
+                DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
+                String gsn = drugRequest.getGsn();
+                data.add(gsn);
+            }catch (Exception ex){
+                data.add(reportRow.getGsn());
+            }
+
 
             data.add(reportRow.dosage_strength);
             data.add(reportRow.quantity);
+            data.add(reportRow.getZip_code());
             try{data.add(new BigDecimal(reportRow.insiderx_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals(""))
+            {data.add(reportRow.insiderx_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.goodrx_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals(""))
+            {data.add(reportRow.goodrx_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.pharm_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals(""))
+            {data.add(reportRow.pharm_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.wellrx_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals(""))
+            {data.add(reportRow.wellrx_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.medimpact_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals(""))
+            {data.add(reportRow.medimpact_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.singlecare_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals(""))
+            {data.add(reportRow.singlecare_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.blink_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+            if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals(""))
+            {data.add(reportRow.blink_pharmacy);}else{data.add("N/A");}
             try{data.add(new BigDecimal(reportRow.recommended_price)
                     .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
             try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
@@ -991,7 +1050,7 @@ public class DrugReportController {
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
         PrintStream fileStream = null;
-        String fileName = "/home/files/poi-generated-file.xlsx";
+        String fileName = "poi-generated-file.xlsx";
 
         Workbook workbook = new XSSFWorkbook();
 

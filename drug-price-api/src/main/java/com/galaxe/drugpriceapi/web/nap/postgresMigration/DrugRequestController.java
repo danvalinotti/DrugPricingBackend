@@ -36,7 +36,7 @@ public class DrugRequestController {
 
     @PostMapping(value = "/request/create")
     public DrugRequest createRequest(@RequestBody DrugRequest drugRequest1) {
-        DrugMaster drugMaster = drugMasterRepository.findById(drugRequest1.getDrugId()).get();
+        DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(drugRequest1.getDrugId())).get();
         List<DrugMaster>drugMasters = drugMasterRepository.findAllByNDCQuantity(drugMaster.getNdc(),drugMaster.getQuantity());
 
         for (int i = 0 ; i< drugMasters.size();i++) {
@@ -71,7 +71,7 @@ public class DrugRequestController {
             }catch (Exception ex){
 
             }
-            drugRequest.setDrugId(drugMasters.get(i).getId());
+            drugRequest.setDrugId(drugMasters.get(i).getId()+"");
             drugRequest.setZipcode(drugMasters.get(i).getZipCode());
 
             if(drugRequest.getZipcode().equals("90036")){
@@ -101,7 +101,7 @@ public class DrugRequestController {
     @PostMapping(value = "/request/edit")
     public void editRequest(@RequestBody DrugRequest drugRequest) {
         DrugRequest request = drugRequestRepository.findById(drugRequest.getId()).get();
-        DrugMaster drugMaster = drugMasterRepository.findById(request.getDrugId()).get();
+        DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(request.getDrugId())).get();
         List<DrugRequest> drugRequests = drugRequestRepository.findByDrugNDCQuantityAndProgramId(drugMaster.getNdc(),drugMaster.getQuantity(),request.getProgramId());
         for (DrugRequest newDrugRequest:drugRequests) {
             newDrugRequest.setDrugName(drugRequest.getDrugName());
@@ -122,12 +122,12 @@ public class DrugRequestController {
         List<DrugRequest> drugRequests =  drugRequestRepository.findByProgramId(6);
         for (DrugRequest drugRequest:drugRequests) {
             try{
-            DrugMaster drugMaster = drugMasterRepository.findById(drugRequest.getDrugId()).get();
+            DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(drugRequest.getDrugId())).get();
             if(drugMaster.getZipCode().equals(drugRequest.getZipcode())){
 
             }else{
                 DrugMaster newDrugMaster=  drugMasterRepository.findAllByFields(drugMaster.getNdc(),drugMaster.getQuantity(),drugRequest.getZipcode()).get(0);
-                drugRequest.setDrugId(newDrugMaster.getId());
+                drugRequest.setDrugId(newDrugMaster.getId()+"");
             }
             }catch (Exception ex){
 
@@ -141,7 +141,7 @@ public class DrugRequestController {
         for (DrugRequest drugRequest:drugRequests) {
             try{
                 if(drugRequest.getQuantity()== null){
-                    DrugMaster drugMaster = drugMasterRepository.findById(drugRequest.getDrugId()).get();
+                    DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(drugRequest.getDrugId())).get();
                     drugRequest.setQuantity(drugMaster.getQuantity()+"");
                     drugRequestRepository.save(drugRequest);
                 }
@@ -157,7 +157,7 @@ public class DrugRequestController {
         for (DrugRequest drugRequest:drugRequests) {
             if(drugRequest.getZipcode() == null){
                 try {
-                    DrugMaster drugMaster = drugMasterRepository.findById(drugRequest.getDrugId()).get();
+                    DrugMaster drugMaster = drugMasterRepository.findById(Integer.parseInt(drugRequest.getDrugId())).get();
                     drugRequest.setZipcode(drugMaster.getZipCode());
                 }catch (Exception ex){
                     System.out.println("DRUG REQUEST:"+drugRequest.getDrugId());
@@ -214,7 +214,7 @@ public class DrugRequestController {
 
            DrugRequestUI drugRequestUI = new DrugRequestUI(drugRequests.get(i));
            DrugRequest drugRequest = drugRequests.get(i);
-           int id = drugRequest.getDrugId();
+           int id = Integer.parseInt(drugRequest.getDrugId());
            try {
                DrugMaster drugMaster = drugMasterRepository.findById(id).get();
                drugRequestUI.setDrugMaster(drugMaster);
