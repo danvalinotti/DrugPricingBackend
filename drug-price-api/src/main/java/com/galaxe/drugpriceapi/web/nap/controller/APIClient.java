@@ -496,6 +496,7 @@ public class APIClient {
                 if(drugRequest.getLatitude()==null){
                     drugRequest.setLatitude(40.585624+"");
                 }
+
                 postObject.setLatitude(drugRequest.getLatitude());
                 postObject.setLongitude(drugRequest.getLongitude());
                 postObject.setNdc(drugRequest.getNdc());
@@ -514,7 +515,7 @@ public class APIClient {
         List<InsideRx> insideRxList = new ArrayList<>();
         try {
 
-            if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 0).size() == 0) {
+            if (drugRequestRepository.findByDrugIdAndProgramId (drugId+"", 0).size() == 0) {
                 DrugRequest drugRequest = new DrugRequest();
                 drugRequest.setProgramId(0);
                 drugRequest.setDrugId(drugId+"");
