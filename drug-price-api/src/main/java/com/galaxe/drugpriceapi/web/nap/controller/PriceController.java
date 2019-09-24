@@ -271,47 +271,22 @@ public class PriceController {
             mongoEntity.setRecommendedDiff("0.00");
             List<Integer> programIds = new ArrayList<>();
             int count = 0;
-            for (Price p : prices) {
-                if(!programIds.contains(p.getProgramId())){
 
-                    programIds.add(p.getDrugDetailsId());
-                }else{
-                    System.out.println("REMOVE");
-                    prices.remove(count) ;
-                }
-                count++;
-            }
             System.out.println(prices.size());
             String average = getAverage(prices);
             mongoEntity.setAverage(average);
 
             int priceIndex = 0;
             for (int i = 0; i <= 6; i++) {
-                String program = "";
 
-                if (i == 0) {
-                    program = "InsideRx";
-                } else if (i == 1) {
-                    program = "US Pharmacy Card";
-                } else if (i == 2) {
-                    program = "WellRx";
-                } else if (i == 3) {
-                    program = "MedImpact";
-                } else if (i == 4) {
-                    program = "SingleCare";
-                } else if (i == 5) {
-                    program = "Blink";
-                }
-                else if (i == 6) {
-                    program = "GoodRx";
-                }
                 Programs programPrices = new Programs();
                 if (priceIndex< prices.size() &&i == prices.get(priceIndex).getProgramId()) {
                     try {
                         Price p = prices.get(priceIndex);
                         String diffPerc = ((p.getDifference() / (p.getPrice() + p.getDifference())) * 100) + "";
 
-                        List<Program> programsList = new ArrayList<>();
+                        List<Program> programsList = new ArrayList<>();//List of prices per program
+
                         programsList.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
 
                         programPrices.setPrices(programsList);
