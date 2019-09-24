@@ -272,75 +272,97 @@ public class PriceController {
             List<Integer> programIds = new ArrayList<>();
             List<Price> duplicatePrices = new ArrayList<>();
             int count = 0;
+            Map<Integer, List<Price>> programPrices = new HashMap<>();
+
+            programPrices.put(0,new ArrayList<>());
+            programPrices.put(1,new ArrayList<>());
+            programPrices.put(2,new ArrayList<>());
+            programPrices.put(3,new ArrayList<>());
+            programPrices.put(4,new ArrayList<>());
+            programPrices.put(5,new ArrayList<>());
+            programPrices.put(6,new ArrayList<>());
+
             for (Price p : prices) {
-                if(!programIds.contains(p.getProgramId())){
-
-                    programIds.add(p.getProgramId());
-                }else{
-                    System.out.println("REMOVE");
-                    duplicatePrices.add(p);
-
-                }
-                count++;
+                programPrices.get(p.getProgramId()).add(p);
             }
-            prices.removeAll(duplicatePrices) ;
-            System.out.println(prices.size());
-            String average = getAverage(prices);
-            mongoEntity.setAverage(average);
-
+            List<Programs> programs1 = new ArrayList<>();
+            for (Map.Entry<Integer, List<Price>> programPrice : programPrices.entrySet()) {
+                Programs p = new Programs();
+                List<Program> progs = new ArrayList<>();
+                for (Price price: programPrice.getValue()) {
+                    Program prog = new Program();
+                    prog.setPharmacy(price.getPharmacy());
+                    prog.setProgram(programIdToString(price.getProgramId()));
+                    prog.setDiff(price.getDifference()+"");
+                    prog.setPrice(price.getPrice()+"");
+                    progs.add(prog);
+                }
+                p.setPrices(progs);
+                programs1.add(p);
+            }
+            mongoEntity.setPrograms(programs1);
+//            for(int i = 0 ; i<7; i++) {
+//
+//
+//                programPrices.setPrices(programsList);
+//                programs.add(programPrices);
+//                String average = getAverage(prices);
+//                mongoEntity.setAverage(average);
+//
+//            }
             int priceIndex = 0;
-            for (int i = 0; i <= 6; i++) {
-                String program = "";
+//            for (int i = 0; i <= 6; i++) {
+//                String program = "";
+//
+//                if (i == 0) {
+//                    program = "InsideRx";
+//                } else if (i == 1) {
+//                    program = "US Pharmacy Card";
+//                } else if (i == 2) {
+//                    program = "WellRx";
+//                } else if (i == 3) {
+//                    program = "MedImpact";
+//                } else if (i == 4) {
+//                    program = "SingleCare";
+//                } else if (i == 5) {
+//                    program = "Blink";
+//                }
+//                else if (i == 6) {
+//                    program = "GoodRx";
+//                }
+//                Programs programPrices = new Programs();
+//                if (priceIndex< prices.size() &&i == prices.get(priceIndex).getProgramId()) {
+//                    try {
+//                        Price p = prices.get(priceIndex);
+//                        String diffPerc = ((p.getDifference() / (p.getPrice() + p.getDifference())) * 100) + "";
+//
+//                        List<Program> programsList = new ArrayList<>();
+//                        programsList.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
+//
+//                        programPrices.setPrices(programsList);
+//                        programs.add(programPrices);
+//
+//                        priceIndex++;
+//                    }catch(Exception e){
+//                        List<Program> programsList = new ArrayList<>();
+//                        programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+//                        Programs programs1 = new Programs();
+//                        programs1.setPrices(programsList);
+//                        programs.add(programs1);
+//                        priceIndex++;
+//                    }
+//                } else {
+//                    List<Program> programsList = new ArrayList<>();
+//                    programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+//                    Programs programs1 = new Programs();
+//                    programs1.setPrices(programsList);
+//                    programs.add(programs1);
+//                    priceIndex++;
+//                }
+//            }
 
-                if (i == 0) {
-                    program = "InsideRx";
-                } else if (i == 1) {
-                    program = "US Pharmacy Card";
-                } else if (i == 2) {
-                    program = "WellRx";
-                } else if (i == 3) {
-                    program = "MedImpact";
-                } else if (i == 4) {
-                    program = "SingleCare";
-                } else if (i == 5) {
-                    program = "Blink";
-                }
-                else if (i == 6) {
-                    program = "GoodRx";
-                }
-                Programs programPrices = new Programs();
-                if (priceIndex< prices.size() &&i == prices.get(priceIndex).getProgramId()) {
-                    try {
-                        Price p = prices.get(priceIndex);
-                        String diffPerc = ((p.getDifference() / (p.getPrice() + p.getDifference())) * 100) + "";
 
-                        List<Program> programsList = new ArrayList<>();
-                        programsList.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
-
-                        programPrices.setPrices(programsList);
-                        programs.add(programPrices);
-
-                        priceIndex++;
-                    }catch(Exception e){
-                        List<Program> programsList = new ArrayList<>();
-                        programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
-                        Programs programs1 = new Programs();
-                        programs1.setPrices(programsList);
-                        programs.add(programs1);
-                        priceIndex++;
-                    }
-                } else {
-                    List<Program> programsList = new ArrayList<>();
-                    programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
-                    Programs programs1 = new Programs();
-                    programs1.setPrices(programsList);
-                    programs.add(programs1);
-                    priceIndex++;
-                }
-            }
-
-
-            mongoEntity.setPrograms(programs);
+//            mongoEntity.setPrograms(programs);
             mongoEntity.setQuantity(requestObject.getQuantity() + "");
             mongoEntity.setNdc(requestObject.getDrugNDC());
             mongoEntity.setDrugType(requestObject.getDrugType());
@@ -373,6 +395,35 @@ public class PriceController {
         }
         System.out.println("FOUND PRICE FROM API");
         return finalDrug;
+    }
+
+    private String programIdToString(int programId) {
+        switch(programId){
+            case 0:
+                return "InsideRx";
+
+            case 1:
+                return "U.S Pharmacy Card";
+
+            case 2:
+                return "WellRx";
+
+            case 3:
+                return "MedImpact";
+
+            case 4:
+                return "Singlecare";
+
+            case 5:
+                return "Blink";
+
+            case 6:
+                return "GoodRx";
+
+            default:
+                return "InsideRx";
+
+        }
     }
 
     private String getAverage(List<Price> prices) {
