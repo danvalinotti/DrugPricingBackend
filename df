@@ -1,0 +1,13 @@
+[1mdiff --git a/drug-price-api/src/main/java/com/galaxe/drugpriceapi/web/nap/postgresMigration/PriceRepository.java b/drug-price-api/src/main/java/com/galaxe/drugpriceapi/web/nap/postgresMigration/PriceRepository.java[m
+[1mindex a4d66ad..ed8feac 100644[m
+[1m--- a/drug-price-api/src/main/java/com/galaxe/drugpriceapi/web/nap/postgresMigration/PriceRepository.java[m
+[1m+++ b/drug-price-api/src/main/java/com/galaxe/drugpriceapi/web/nap/postgresMigration/PriceRepository.java[m
+[36m@@ -29,7 +29,7 @@[m [mpublic interface PriceRepository extends JpaRepository<Price,Integer> {[m
+             " LIMIT 2",nativeQuery = true)[m
+     List<Price> findLastPrice(int id,int programId);[m
+ [m
+[31m-    @Query(value = "SELECT price.id, price.average_price, price.createdat, price.lowest_market_price, price.recommended_price, price.pharmacy, price.difference, price.drug_details_id, price.price, price.program_id FROM report_drugs right outer join price on report_drugs.price_id = price.id " +[m
+[32m+[m[32m    @Query(value = "SELECT price.* FROM report_drugs right outer join price on report_drugs.price_id = price.id " +[m
+             " WHERE report_id = ?2 AND drug_details_id = ?1 ORDER BY price.program_id", nativeQuery = true)[m
+     List<Price> findRecentPricesByDrugId(int id, int report_id);[m
+ [m
