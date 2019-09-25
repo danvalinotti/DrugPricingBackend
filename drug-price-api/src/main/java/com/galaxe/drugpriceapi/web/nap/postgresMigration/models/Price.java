@@ -37,6 +37,9 @@ public class Price {
     Double lowestMarketPrice;
     @Column
     Double averagePrice;
+    @Column
+    Integer rank;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     Date createdat;

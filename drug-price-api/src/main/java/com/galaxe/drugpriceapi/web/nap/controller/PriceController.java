@@ -272,6 +272,7 @@ public class PriceController {
             List<Integer> programIds = new ArrayList<>();
             List<Price> duplicatePrices = new ArrayList<>();
             int count = 0;
+
             Map<Integer, List<Price>> programPrices = new HashMap<>();
 
             programPrices.put(0,new ArrayList<>());
@@ -296,6 +297,7 @@ public class PriceController {
                     prog.setDiff(price.getDifference()+"");
                     prog.setPrice(price.getPrice()+"");
                     progs.add(prog);
+
                 }
                 p.setPrices(progs);
                 programs1.add(p);
