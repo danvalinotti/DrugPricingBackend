@@ -160,11 +160,11 @@ public class PriceController {
     }
 
     private boolean setScheduledFutureJob() {
-        if (now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0) {
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
-        } else {
-            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
-        }
+//        if (now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0) {
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//        } else {
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+//        }
 //        if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
 //            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
 //            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
@@ -202,18 +202,18 @@ public class PriceController {
 //            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
 //            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
 //        }
-        for (int i = 0; i < this.times.size(); i++) {
-            ZonedDateTime nextRun = this.times.get(i);
-            Duration duration = Duration.between(now, nextRun);
-            long initalDelay = duration.getSeconds();
-
-            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-            scheduler.scheduleAtFixedRate(startBatchJob(),
-                    initalDelay,
-//                    TimeUnit.DAYS.toSeconds(2),
-                  TimeUnit.DAYS.toSeconds(1),
-                    TimeUnit.SECONDS);
-        }
+//        for (int i = 0; i < this.times.size(); i++) {
+//            ZonedDateTime nextRun = this.times.get(i);
+//            Duration duration = Duration.between(now, nextRun);
+//            long initalDelay = duration.getSeconds();
+//
+//            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+//            scheduler.scheduleAtFixedRate(startBatchJob(),
+//                    initalDelay,
+////                    TimeUnit.DAYS.toSeconds(2),
+//                  TimeUnit.DAYS.toSeconds(1),
+//                    TimeUnit.SECONDS);
+//        }
 
         return false;
     }
