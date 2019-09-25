@@ -44,23 +44,34 @@ public class DrugAuthController {
     //----------------------------------------------------------
     @PostMapping("/create/token")
     public Profile createToken(@RequestBody Profile profile) {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        String profileJson = "";
         try {
-            profileJson = objectMapper.writeValueAsString(profile);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            Profile profile1 = profileRepository.findByUsername(profile.getUsername()).get(0);
+            if (BCrypt.checkpw(profile.getPassword(), profile1.getPassword()) == true) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                String profileJson = "";
+                try {
+                    profileJson = objectMapper.writeValueAsString(profile);
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+
+                String jws = Jwts.builder().setSubject(profileJson).signWith(this.key).compact();
+                Profile p = new Profile();
+                Profile foundProfile = profileRepository.findByUsername(profile.getUsername()).get(0);
+                foundProfile.setTokenDate(new Date());
+                foundProfile.setActiveToken(jws);
+                profileRepository.save(foundProfile);
+                p.setName(jws);
+                return p;
+            } else {
+                profile.setPassword("false");
+                return profile;
+            }
+        }catch (Exception ex){
+            profile.setPassword("false");
+            return profile;
         }
 
-        String jws = Jwts.builder().setSubject(profileJson).signWith(this.key).compact();
-        Profile p = new Profile();
-       Profile foundProfile =  profileRepository.findByUsername(profile.getUsername()).get(0);
-        foundProfile.setTokenDate(new Date());
-        foundProfile.setActiveToken(jws);
-        profileRepository.save(foundProfile);
-        p.setName(jws);
-        return p;
 
     }
 
