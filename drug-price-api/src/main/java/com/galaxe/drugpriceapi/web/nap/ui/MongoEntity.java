@@ -33,7 +33,7 @@ public class MongoEntity {
 
     private String ndc;
 
-    private List<Program> programs;
+    private List<Programs> programs;
 
     private Set<String> pharmacyName;
 
@@ -45,11 +45,15 @@ public class MongoEntity {
 
     private String recommendedDiff;
 
+    private String description;
+
     @CreatedDate
     private DateTime created;
 
     @LastModifiedDate
     private DateTime modified;
+
+    private String diffFromLast;
 
     public String getCompositeId(String ndc, String dosage, String quantity, String zipcode) {
         return ndc + dosage + quantity + zipcode;

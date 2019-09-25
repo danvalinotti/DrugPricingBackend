@@ -2,6 +2,7 @@ package com.galaxe.drugpriceapi.web.nap.controller;
 
 import com.galaxe.drugpriceapi.web.nap.blinkhealth.*;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugRequest;
 import com.google.gson.Gson;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
@@ -41,31 +42,48 @@ public class BlinkClient {
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<Price> getBlinkPrice(RequestObject requestObject) {
-        String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
-        String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
-        WebClient webClient = WebClient.create(url);
-        String str = webClient
-                .get()
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve().bodyToMono(String.class).block();
+       String url = constructBlinkPriceURL(requestObject.getDrugName()).intern();
+       String requestedDosage = requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
+       String str = "";
+
+        try {
+            WebClient webClient = WebClient.create(url);
+             str = webClient
+                    .get()
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve().bodyToMono(String.class).block();
+        }catch(Exception e){
+            return CompletableFuture.completedFuture(new Price());
+        }
         BlinkHealth blinkHealth = gson.fromJson(str, BlinkHealth.class);
+
+        if(blinkHealth.getResult().getDrug().getFormatted_name().contains("Generic")){
+            return CompletableFuture.completedFuture(new Price());
+        }
+
         if (!CollectionUtils.isEmpty(blinkHealth.getResult().getDrug().getForms())) {
-            if (!CollectionUtils.isEmpty(blinkHealth.getResult().getDrug().getForms().get(0).getDosages())) {
-                for (Dosages dosage : blinkHealth.getResult().getDrug().getForms().get(0).getDosages()) {
+            for (Forms form :blinkHealth.getResult().getDrug().getForms()) {
+
+
+            if (!CollectionUtils.isEmpty(form.getDosages())) {
+                for (Dosages dosage : form.getDosages()) {
                     String blinkDosage = dosage.getDisplay_dosage().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
                     if (blinkDosage.equalsIgnoreCase(requestedDosage)) {
                         for (Quantities q : dosage.getQuantities()) {
                             Double d = Double.parseDouble(String.valueOf(requestObject.getQuantity()));
                             if (q.getRaw_quantity().equalsIgnoreCase(String.valueOf(d))) {
-                                return CompletableFuture.completedFuture(q.getPrice());
+                                Price p = q.getPrice();
+                                p.setMedId(dosage.getMed_id());
+                                return CompletableFuture.completedFuture(p);
                             }
                         }
 
                     }
                 }
             }
+            }
         }
-        return CompletableFuture.completedFuture(price);
+        return CompletableFuture.completedFuture(new Price());
 
     }
 
@@ -76,6 +94,7 @@ public class BlinkClient {
 
     private String constructBlinkPriceURL(String name) {
 
-        return "https://www.blinkhealth.com/api/v2/user/drugs/detail/" + name.split("\\s+")[0] + "?c_app=rx&c_platform=web&c_timestamp=1557342444013";
+        String newName = name.replace(" ", "-");
+        return "https://www.blinkhealth.com/api/v2/user/drugs/detail/" +newName + "?c_app=rx&c_platform=web&c_timestamp=1557342444013";
     }
 }

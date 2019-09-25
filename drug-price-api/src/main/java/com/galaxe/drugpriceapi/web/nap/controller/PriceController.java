@@ -4,28 +4,49 @@ import com.galaxe.drugpriceapi.model.*;
 import com.galaxe.drugpriceapi.repositories.DrugNAPRepository;
 import com.galaxe.drugpriceapi.repositories.MongoEntityRepository;
 import com.galaxe.drugpriceapi.web.nap.blinkhealth.Blink;
+import com.galaxe.drugpriceapi.web.nap.masterList.BatchDetails;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterList;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterListService;
+import com.galaxe.drugpriceapi.web.nap.masterList.MasterListTestController;
 import com.galaxe.drugpriceapi.web.nap.medimpact.LocatedDrug;
 import com.galaxe.drugpriceapi.web.nap.model.RequestObject;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.*;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.goodRx.GoodRxResponse;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.DrugMaster;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.Price;
+import com.galaxe.drugpriceapi.web.nap.postgresMigration.models.RandomPassword;
 import com.galaxe.drugpriceapi.web.nap.singlecare.PharmacyPricings;
-import com.galaxe.drugpriceapi.web.nap.ui.DrugBrandInfo;
-import com.galaxe.drugpriceapi.web.nap.ui.MongoEntity;
-import com.galaxe.drugpriceapi.web.nap.ui.Program;
-import com.galaxe.drugpriceapi.web.nap.ui.ZipcodeConverter;
+import com.galaxe.drugpriceapi.web.nap.ui.*;
 import com.galaxe.drugpriceapi.web.nap.wellRx.Drugs;
+import com.mongodb.Mongo;
 import org.decimal4j.util.DoubleRounder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.webmvc.ProfileController;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.util.CollectionUtils;
 
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 
-
+//https://drug-pricing-backend.cfapps.io/
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PriceController {
+    @Autowired
+    DrugMasterRepository drugMasterRepository;
+    @Autowired
+    PriceRepository priceRepository;
+    @Autowired
+    ReportRepository reportRepository;
+    @Autowired
+    DrugProfileController drugProfileController;
+    @Autowired
+    MasterListService masterListService;
 
     private final String CSRF_TOKEN = "Hi6yGXfg-vppErZsd2KXvKmH9LxjPBNJeK48";
 
@@ -37,7 +58,11 @@ public class PriceController {
 
     private ScheduledExecutorService executor = Executors.newScheduledThreadPool(5);
 
-    private Boolean flag = true;
+
+    ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/New_York"));
+    ArrayList<ZonedDateTime> times = new ArrayList<>();
+    int nexttimeIndex;
+
 
     @Autowired
     private MongoEntityRepository mongoEntityRepo;
@@ -54,6 +79,11 @@ public class PriceController {
     @Autowired
     private APIClient3 apiService3;
 
+    @Autowired
+    MasterListTestController masterListTestController;
+
+    @Autowired
+    DrugReportController drugReportController;
     private int count = 0;
 
     private final String GENERIC = "GENERIC";
@@ -68,43 +98,134 @@ public class PriceController {
 
     private final String ZERO = "0.0";
 
-    private final SortedSet<Double> recommendedPriceSet = new TreeSet<>();
 
-    private final List<Program> programs = new ArrayList<>();
-
+    private Boolean flag = setScheduledFutureJob();
+    private Boolean tokenFlag = setScheduledTokenJob();
     private Runnable startBatchJob() {
         Runnable task = () -> {
             count++;
-            System.out.println("Task Run count :: " + count);
-            List<MongoEntity> entities = mongoEntityRepo.findAll();
-            if (!CollectionUtils.isEmpty(entities)) {
-                entities.forEach(entity -> {
-                    try {
-                        addDrugToDashBoard(constructRequestObjectFromMongo(entity));
-                    } catch (Throwable t) {
-                        System.out.println(t.getCause());
-                    }
-                });
+//            List<MongoEntity> entities = mongoEntityRepo.findAll();
+//            if (!CollectionUtils.isEmpty(entities)) {
+//                entities.forEach(entity -> {   //For each drug in dashboard
+//                    try {//Saves updated drug to dashboard
+//                     //   addDrugToDashBoard(constructRequestObjectFromMongo(entity));
+//
+//                    } catch (Throwable t) {
+//
+//                    }
+//                });
+//            }
+
+            try {
+                drugReportController.generateReport();
+//                masterListService.add();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
             }
-            System.out.println("Tasked ended count :: " + count);
+        };
+        return task;
+    }
+    private Runnable startTokenJob() {
+        Runnable task = () -> {
+
+            try {
+                System.out.println("TOKEN JOB STARTED");
+                drugProfileController.resetTokens();
+            } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
         };
         return task;
     }
 
 
-    private RequestObject constructRequestObjectFromMongo(MongoEntity entity) {
+    public RequestObject constructRequestObjectFromMongo(MongoEntity entity) {
 
         RequestObject obj = new RequestObject();
         obj.setDrugName(entity.getName());
         obj.setDrugNDC(entity.getNdc());
         obj.setDosageStrength(entity.getDosageStrength());
-        obj.setQuantity(Integer.parseInt(entity.getQuantity()));
+        obj.setQuantity(Double.parseDouble(entity.getQuantity()));//WAS PARSE INT
         obj.setZipcode(entity.getZipcode());
         return obj;
     }
 
-    private void setScheduledFutureJob() {
+    private void test() {
         ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.HOURS);
+    }
+
+    private void test2() {
+
+        ScheduledFuture<?> scheduledFuture = executor.scheduleAtFixedRate(startBatchJob(), 1, 1, TimeUnit.SECONDS);
+    }
+
+    private boolean setScheduledFutureJob() {
+        if (now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0) {
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+        } else {
+            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+        }
+//        if(now.compareTo(now.withHour(20).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0).plusDays(1));
+//        }else if(now.compareTo(now.withHour(16).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(12).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(9).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else if(now.compareTo(now.withHour(5).withMinute(0).withSecond(0)) > 0){
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0).plusDays(1));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }else{
+//            this.times.add(now.withHour(5).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(9).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(12).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(16).withMinute(0).withSecond(0));
+//            this.times.add(now.withHour(20).withMinute(0).withSecond(0));
+//        }
+        for (int i = 0; i < this.times.size(); i++) {
+            ZonedDateTime nextRun = this.times.get(i);
+            Duration duration = Duration.between(now, nextRun);
+            long initalDelay = duration.getSeconds();
+
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            scheduler.scheduleAtFixedRate(startBatchJob(),
+                    initalDelay,
+//                    TimeUnit.DAYS.toSeconds(2),
+                  TimeUnit.DAYS.toSeconds(1),
+                    TimeUnit.SECONDS);
+        }
+
+        return false;
+    }
+    private boolean setScheduledTokenJob() {
+            long initalDelay = TimeUnit.MINUTES.toSeconds(2);
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+            scheduler.scheduleAtFixedRate(startTokenJob(),
+                    initalDelay,
+                    TimeUnit.HOURS.toSeconds(1),
+                    TimeUnit.SECONDS);
+
+        return false;
     }
 
     //Returns Dashboard Drugs
@@ -121,13 +242,111 @@ public class PriceController {
     //Getting the drug prices for a particular drug
     @PostMapping("/getPharmacyPrice")
     public MongoEntity getPharmacyList(@RequestBody RequestObject requestObject) throws Throwable {
-
+        String drugName = requestObject.getDrugName();
         if (flag) {
             flag = false;
             setScheduledFutureJob();
         }
+        DrugMaster m = new DrugMaster();
 
-        return getFinalDrug(requestObject);
+        try {
+            m = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0);
+        } catch (Exception e) {
+
+        }
+        try {
+            requestObject.setGSN(m.getGsn());
+        } catch (Exception ex) {
+        }
+        DrugMaster d = new DrugMaster();
+        MongoEntity mongoEntity = new MongoEntity();
+        List<Programs> programs = new ArrayList<>();
+        List<Price> prices = new ArrayList<>();
+        try {
+
+
+            d = drugMasterRepository.findAllByFields(requestObject.getDrugNDC(), requestObject.getQuantity(),requestObject.getZipcode()).get(0);
+            System.out.println("NEWEST REPORT ID "+reportRepository.findFirstByOrderByTimestampDesc().getId());
+            prices = priceRepository.findRecentPricesByDrugId(d.getId(), reportRepository.findFirstByOrderByTimestampDesc().getId());
+            mongoEntity.setRecommendedDiff("0.00");
+            List<Integer> programIds = new ArrayList<>();
+            int count = 0;
+
+            System.out.println(prices.size());
+            String average = getAverage(prices);
+            mongoEntity.setAverage(average);
+
+            int priceIndex = 0;
+            for (int i = 0; i <= 6; i++) {
+
+                Programs programPrices = new Programs();
+                if (priceIndex< prices.size() &&i == prices.get(priceIndex).getProgramId()) {
+                    try {
+                        Price p = prices.get(priceIndex);
+                        String diffPerc = ((p.getDifference() / (p.getPrice() + p.getDifference())) * 100) + "";
+
+                        List<Program> programsList = new ArrayList<>();//List of prices per program
+
+                        programsList.add(new Program(program, p.getPharmacy(), p.getPrice() + "", p.getDifference() + "", diffPerc));
+
+                        programPrices.setPrices(programsList);
+                        programs.add(programPrices);
+
+                        priceIndex++;
+                    }catch(Exception e){
+                        List<Program> programsList = new ArrayList<>();
+                        programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                        Programs programs1 = new Programs();
+                        programs1.setPrices(programsList);
+                        programs.add(programs1);
+                    }
+                } else {
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program(program, "N/A", "N/A", "0.0", "0.0"));
+                    Programs programs1 = new Programs();
+                    programs1.setPrices(programsList);
+                    programs.add(programs1);
+                }
+            }
+
+
+            mongoEntity.setPrograms(programs);
+            mongoEntity.setQuantity(requestObject.getQuantity() + "");
+            mongoEntity.setNdc(requestObject.getDrugNDC());
+            mongoEntity.setDrugType(requestObject.getDrugType());
+            mongoEntity.setDosageStrength(requestObject.getDosageStrength());
+            mongoEntity.setName(requestObject.getDrugName());
+            mongoEntity.setZipcode(requestObject.getZipcode());
+//            mongoEntity.setDosageUOM(requestObject.get);
+            mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
+            mongoEntity.setAverage(prices.get(0).getAveragePrice()+"");
+            WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+requestObject.getDrugName().toLowerCase().replace(" ", "-")+"/details?locale=en-US");
+            DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
+
+            mongoEntity.setDescription(description.getDescription());
+            System.out.println("FOUND PRICE FROM DATABASE");
+            return mongoEntity;
+        } catch (Exception ex) {
+
+            ex.printStackTrace();
+        }
+
+
+        MongoEntity finalDrug = getFinalDrug(requestObject);
+        WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+drugName.toLowerCase().replace(" ", "-").replace("/", "-")+"/details?locale=en-US");
+        try {
+            DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
+
+            finalDrug.setDescription(description.getDescription());
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+        System.out.println("FOUND PRICE FROM API");
+        return finalDrug;
+    }
+
+    private String getAverage(List<Price> prices) {
+        return "0.0";
     }
 
     //When Track-Listing is clicked
@@ -140,6 +359,7 @@ public class PriceController {
         }
 
         MongoEntity latestAPIResponse = getFinalDrug(requestObject);
+        // masterListTestController.addDrugToMasterList(latestAPIResponse);
         mongoEntityRepo.save(latestAPIResponse);
     }
 
@@ -153,6 +373,7 @@ public class PriceController {
         }
 
         WebClient webClient = WebClient.create("https://insiderx.com/request/medications/search?query=" + name + "&limit=8&locale=en-US");
+
         return getDrugInfoFromInsideRx(webClient);
     }
 
@@ -212,13 +433,14 @@ public class PriceController {
         return drugNAPRepository.findAll();
     }
 
-    private MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
-
+    public MongoEntity getFinalDrug(RequestObject requestObject) throws Throwable {
         long start = System.currentTimeMillis();
-        System.out.println("Start time : " + start);
         Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
+
+        start = System.currentTimeMillis();
         String brandType = getBrandIndicator(requestObject).intern();
 
+        start = System.currentTimeMillis();
         if (brandType.isEmpty()) {
             brandType = B;
             requestObject.setDrugType(BRAND_WITH_GENERIC);
@@ -226,40 +448,82 @@ public class PriceController {
             requestObject.setDrugType(brandType.equalsIgnoreCase(G) ? GENERIC : BRAND_WITH_GENERIC);
         }
 
+        start = System.currentTimeMillis();
         CompletableFuture<Blink> blinkFuture = null;
         //Future result
+
         CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
         CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
         CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
-        if (brandType.equalsIgnoreCase("G") || requestObject.getDrugType().equalsIgnoreCase(GENERIC)) {
-            blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
-        }
+        CompletableFuture<GoodRxResponse> goodRxFuture = apiService.getGoodRxPrices(requestObject);
+
+        blinkFuture = apiService3.getBlinkPharmacyPrice(requestObject);
 
 
         //Wait until they are all done
         if (blinkFuture != null)
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture, blinkFuture).join();
-        else
+        else {
             CompletableFuture.allOf(inside, usPharmacy, wellRxFuture, medImpactFuture, singleCareFuture).join();
+            //   start = System.currentTimeMillis();
+        }
 
 
-        System.out.println("After all API call done : " + (System.currentTimeMillis() - start));
         //List and obj to store future result
         List<InsideRx> insideRxPrices = inside.get();
         List<DrugNAP2> usPharmacyPrices = usPharmacy.get();
         List<Drugs> wellRx = wellRxFuture.get();
+        if (requestObject.getDrugName().equalsIgnoreCase("Genotropin") && requestObject.getDosageStrength().contains("1.6")) {
+            System.out.println("GENOTROPIN 1.6");
+            try {
+                System.out.println(wellRx.get(0).getPrice());
+            } catch (Exception ex) {
+                System.out.println("ERROR");
+            }
+
+        }
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
         Blink blink = null;
-        /*if (blinkFuture != null)
+        if (blinkFuture != null)
             blink = apiService3.getBlinkPharmacyPrice(requestObject).get();
-*/
-        MongoEntity entity = constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink);
-        return updateDiff(entity, requestObject);
+
+
+        start = System.currentTimeMillis();
+        MongoEntity entity = constructEntity(usPharmacyPrices, insideRxPrices, requestObject, wellRx, locatedDrug, singleCarePrice, blink);//BADDDDDD
+        MongoEntity newEntity = new MongoEntity();
+
+
+        start = System.currentTimeMillis();
+        MongoEntity m = updateDiff(entity, requestObject);
+
+//        System.out.println("WELL RX PRICE "+m.getPrograms().get(2).getPrice());
+
+        return m;
 
     }
+    public void  createDrugRequests(RequestObject requestObject){
+        Map<String, String> longitudeLatitude = constructLongLat(requestObject.getZipcode());
+        String brandType = getBrandIndicator(requestObject).intern();
+
+
+        try {
+            CompletableFuture<List<InsideRx>> inside = apiService.constructInsideRxWebClient(requestObject, longitudeLatitude);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        CompletableFuture<List<DrugNAP2>> usPharmacy = apiService2.constructUsPharmacy(requestObject);
+        CompletableFuture<List<Drugs>> wellRxFuture = apiService2.getWellRxDrugInfo(requestObject, longitudeLatitude, brandType);
+        CompletableFuture<LocatedDrug> medImpactFuture = apiService.getMedImpact(requestObject, longitudeLatitude, brandType);
+        CompletableFuture<PharmacyPricings> singleCareFuture = apiService.getSinglecarePrices(requestObject);
+        CompletableFuture<GoodRxResponse> goodRxFuture = apiService.getGoodRxPrices(requestObject);
+
+    }
+
 
     private String getDrugInfoFromInsideRx(WebClient webClient) {
         return webClient
@@ -271,8 +535,8 @@ public class PriceController {
     }
 
 
-    private String getBrandIndicator(RequestObject requestObject) {
-        List<DrugBrandInfo> drugBrandInfos = getDrugInfoFromUs(requestObject.getDrugName());
+    public String getBrandIndicator(RequestObject requestObject) {
+        List<DrugBrandInfo> drugBrandInfos = getDrugInfoFromUs(requestObject.getDrugName().replace("Hydrochloride", "HCL"));
         StringBuilder sb = new StringBuilder();
         drugBrandInfos.forEach(brand -> {
 
@@ -282,16 +546,21 @@ public class PriceController {
             }
 
         });
+        if(!sb.toString().equals(B) && !sb.toString().equals(G)){
+            return G;
+        }
         return sb.toString();
     }
 
-    private Map<String, String> constructLongLat(String zip) {
+    public Map<String, String> constructLongLat(String zip) {
 
         if (longLatMap.containsKey(zip)) {
             return longLatMap.get(zip);
         } else {
+            long start = System.currentTimeMillis();
             WebClient webClient = WebClient.create("https://api.promaptools.com/service/us/zip-lat-lng/get/?zip=" + zip + "&key=17o8dysaCDrgv1c");
             List<ZipcodeConverter> longLat = webClient.get().exchange().flatMapMany(clientResponse -> clientResponse.bodyToFlux(ZipcodeConverter.class)).collectList().block();
+
             Map<String, String> map = new HashMap<>();
             map.put("longitude", longLat.get(0).getOutput().get(0).getLongitude());
             map.put("latitude", longLat.get(0).getOutput().get(0).getLatitude());
@@ -306,8 +575,8 @@ public class PriceController {
         if (drugBrandInfoMap.containsKey(name)) {
             return drugBrandInfoMap.get(name);
         } else {
-
-            WebClient webClient = WebClient.create("https://api.uspharmacycard.com/drug/lookup/name/" + name);
+            name.replace("/", "%2F");
+            WebClient webClient = WebClient.create("https://api.uspharmacycard.com/drug/lookup/name/" + name.replace("/", "%2F"));
             List<DrugBrandInfo> brands = webClient
                     .get()
                     .accept(MediaType.APPLICATION_JSON)
@@ -320,7 +589,12 @@ public class PriceController {
         }
     }
 
-    private MongoEntity constructEntity
+    private String convertName(String name) {
+        name.replace("/", "%2F");
+        return name;
+    }
+
+    public MongoEntity constructEntity
             (List<DrugNAP2> usCardProgramResult, List<InsideRx> insideRxProgramResult,
              RequestObject reqObject, List<Drugs> wellRxProgramResult, LocatedDrug medImpactLocatedDrug,
              PharmacyPricings singlecarePrice, Blink blink) {
@@ -328,77 +602,171 @@ public class PriceController {
         MongoEntity finalDrugObject = new MongoEntity();
         Double sum = 0.0;
         String recommended;
-        recommendedPriceSet.clear();
-        programs.clear();
+        SortedSet<Double> recommendedPriceSet = new TreeSet<>();
+
+        List<Programs> programs = new ArrayList<>();
         finalDrugObject.setName(reqObject.getDrugName());
 
         if (!CollectionUtils.isEmpty(insideRxProgramResult.get(0).getPrices())) {
-            programs.add(new Program("insideRx", insideRxProgramResult.get(0).getPrices().get(0).getPharmacy().getName().toUpperCase(), insideRxProgramResult.get(0).getPrices().get(0).getPrice(), "0.0", "0.0"));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("insideRx", insideRxProgramResult.get(0).getPrices().get(0).getPharmacy().getName().toUpperCase(), insideRxProgramResult.get(0).getPrices().get(0).getPrice(), "0.0", "0.0"));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
             recommendedPriceSet.add(Double.parseDouble(insideRxProgramResult.get(0).getPrices().get(0).getPrice()));
         } else {
-            programs.add(new Program("insideRx", NA, NA, ZERO, ZERO));
-        }
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("insideRx", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
 
-        if (!CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList())) {
-            programs.add(new Program("usPharmacyCard", usCardProgramResult.get(0).getPriceList().get(0).getPharmacy().getPharmacyName().toUpperCase(), usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice(), "0.0", "0.0"));
-            recommendedPriceSet.add(Double.parseDouble(usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice()));
-        } else {
-            programs.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
         }
+        try {
+            if (!CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList())) {
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("usPharmacyCard", usCardProgramResult.get(0).getPriceList().get(0).getPharmacy().getPharmacyName().toUpperCase(), usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
 
+                recommendedPriceSet.add(Double.parseDouble(usCardProgramResult.get(0).getPriceList().get(0).getDiscountPrice()));
+            } else {
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
+            }
+        } catch (Exception ex) {
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("usPharmacyCard", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
+        }
         if (!CollectionUtils.isEmpty(wellRxProgramResult)) {
-            programs.add(new Program("wellRx", wellRxProgramResult.get(0).getPharmacyName().toUpperCase(), wellRxProgramResult.get(0).getPrice(), "0.0", "0.0"));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("wellRx", wellRxProgramResult.get(0).getPharmacyName().toUpperCase(), wellRxProgramResult.get(0).getPrice(), "0.0", "0.0"));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
             recommendedPriceSet.add(Double.parseDouble(wellRxProgramResult.get(0).getPrice()));
         } else {
-            programs.add(new Program("wellRx", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("wellRx", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (medImpactLocatedDrug != null) {
             if (medImpactLocatedDrug.getPricing() != null && medImpactLocatedDrug.getPharmacy() != null) {
                 recommendedPriceSet.add(Double.parseDouble(medImpactLocatedDrug.getPricing().getPrice()));
-                programs.add(new Program("medImpact", medImpactLocatedDrug.getPharmacy().getName().toUpperCase(), medImpactLocatedDrug.getPricing().getPrice(), "0.0", "0.0"));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("medImpact", medImpactLocatedDrug.getPharmacy().getName().toUpperCase(), medImpactLocatedDrug.getPricing().getPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
             } else {
-                programs.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
 
             }
         } else {
-            programs.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("medImpact", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (singlecarePrice != null) {
             if (!CollectionUtils.isEmpty(singlecarePrice.getPrices()) && singlecarePrice.getPharmacy() != null) {
                 recommendedPriceSet.add(Double.parseDouble(singlecarePrice.getPrices().get(0).getPrice()));
-                programs.add(new Program("singlecare", singlecarePrice.getPharmacy().getName().toUpperCase(), singlecarePrice.getPrices().get(0).getPrice(), "0.0", "0.0"));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("singlecare", singlecarePrice.getPharmacy().getName().toUpperCase(), singlecarePrice.getPrices().get(0).getPrice(), "0.0", "0.0"));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
             } else {
-                programs.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
             }
         } else {
-            programs.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("singlecare", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
+
         }
 
         if (blink != null) {
             if (blink.getPrice() != null && blink.getResults() != null) {
-                recommendedPriceSet.add(Double.parseDouble(blink.getPrice().getLocal().getRaw_value()));
-                programs.add(new Program("blink", blink.getResults().getName(), blink.getPrice().getLocal().getRaw_value(), ZERO, ZERO));
+                try {
+                    recommendedPriceSet.add(Double.parseDouble(blink.getPrice().getLocal().getRaw_value()));
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program("blink", blink.getResults().getName(), blink.getPrice().getLocal().getRaw_value(), ZERO, ZERO));
+                    Programs p = new Programs();
+                    p.setPrices(programsList);
+                    programs.add(p);
+                } catch (NullPointerException e) {
+                    List<Program> programsList = new ArrayList<>();
+                    programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+                    Programs p = new Programs();
+                    p.setPrices(programsList);
+                    programs.add(p);
+
+
+                }
             } else {
-                programs.add(new Program("blink", NA, NA, ZERO, ZERO));
+                List<Program> programsList = new ArrayList<>();
+                programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+                Programs p = new Programs();
+                p.setPrices(programsList);
+                programs.add(p);
+
             }
         } else {
-            programs.add(new Program("blink", NA, NA, ZERO, ZERO));
+            List<Program> programsList = new ArrayList<>();
+            programsList.add(new Program("blink", NA, NA, ZERO, ZERO));
+            Programs p = new Programs();
+            p.setPrices(programsList);
+            programs.add(p);
         }
-
-        programs.add(new Program("GoodRx", "Coming soon", NA, ZERO, ZERO));
+        List<Program> programsList = new ArrayList<>();
+        programsList.add(new Program("GoodRx", "Coming soon", NA, ZERO, ZERO));
+        Programs p = new Programs();
+        p.setPrices(programsList);
+        programs.add(p);
 
         finalDrugObject.setPrograms(programs);
 
-        recommended = String.valueOf(DoubleRounder.round(recommendedPriceSet.first(), 2));
+        try {
+            recommended = String.valueOf(DoubleRounder.round(recommendedPriceSet.first(), 2));
 
-        for (Double p : recommendedPriceSet) {
-            sum += p;
+            for (Double price : recommendedPriceSet) {
+                sum += price;
+            }
+
+            finalDrugObject.setAverage(String.valueOf(DoubleRounder.round(sum / recommendedPriceSet.size(), 2)));
+        } catch (NoSuchElementException e) {
+            recommended = "0.00";
         }
-
-        finalDrugObject.setAverage(String.valueOf(DoubleRounder.round(sum / recommendedPriceSet.size(), 2)));
-
         Set<String> pharmacyListAlexa = new HashSet<>();
 
         if (!CollectionUtils.isEmpty(insideRxProgramResult.get(0).getPrices())) {
@@ -412,20 +780,20 @@ public class PriceController {
                 }
             }
         }
+        if (usCardProgramResult.size() >= 1) {
+            if (!CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList())) {
 
-        if (!CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList())) {
-
-            for (PriceList us : usCardProgramResult.get(0).getPriceList()) {
-                Double d = Double.parseDouble(us.getDiscountPrice());
-                if (recommended.equalsIgnoreCase(String.valueOf(DoubleRounder.round(d, 2)))) {
-                    String pharmacy = us.getPharmacy().getPharmacyName() + " " + us.getPharmacy().getAddress() + " " + us.getPharmacy().getCity();
-                    pharmacyListAlexa.add(pharmacy);
-                } else {
-                    break;
+                for (PriceList us : usCardProgramResult.get(0).getPriceList()) {
+                    Double d = Double.parseDouble(us.getDiscountPrice());
+                    if (recommended.equalsIgnoreCase(String.valueOf(DoubleRounder.round(d, 2)))) {
+                        String pharmacy = us.getPharmacy().getPharmacyName() + " " + us.getPharmacy().getAddress() + " " + us.getPharmacy().getCity();
+                        pharmacyListAlexa.add(pharmacy);
+                    } else {
+                        break;
+                    }
                 }
             }
         }
-
         if (!CollectionUtils.isEmpty(wellRxProgramResult)) {
 
             for (Drugs wellRx : wellRxProgramResult) {
@@ -445,13 +813,15 @@ public class PriceController {
                 ? GENERIC : BRAND_WITH_GENERIC) : reqObject.getDrugType());
         String dosageStrength = reqObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim().intern();
         finalDrugObject.setDosageStrength(dosageStrength);
-        finalDrugObject.setDosageUOM(CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList()) ? "" : usCardProgramResult.get(0).getDosage().getDosageUOM().toUpperCase());
+        if (usCardProgramResult.size() >= 1) {
+            finalDrugObject.setDosageUOM(CollectionUtils.isEmpty(usCardProgramResult.get(0).getPriceList()) ? "" : usCardProgramResult.get(0).getDosage().getDosageUOM().toUpperCase());
+        }
         finalDrugObject.setNdc(reqObject.getDrugNDC());
         finalDrugObject.setQuantity(String.valueOf(reqObject.getQuantity()));
         finalDrugObject.setZipcode(reqObject.getZipcode());
         finalDrugObject.setId(finalDrugObject.getCompositeId(finalDrugObject.getNdc(), finalDrugObject.getDosageStrength(), finalDrugObject.getQuantity(), finalDrugObject.getZipcode()));
-        if (!programs.get(0).getPrice().equalsIgnoreCase("N/A")) {
-            finalDrugObject.setRecommendedDiff(String.valueOf(Double.parseDouble(recommended) - Double.parseDouble(programs.get(0).getPrice())));
+        if (!programs.get(0).getPrices().get(0).getPrice().equalsIgnoreCase("N/A")) {
+            finalDrugObject.setRecommendedDiff(String.valueOf(Double.parseDouble(recommended) - Double.parseDouble(programs.get(0).getPrices().get(0).getPrice())));
         }
         finalDrugObject.setAverageDiff("0.0");
 
@@ -460,7 +830,7 @@ public class PriceController {
     }
 
 
-    private MongoEntity updateDiff(MongoEntity currentObject, RequestObject requestObject) {
+    public MongoEntity updateDiff(MongoEntity currentObject, RequestObject requestObject) {
 
         Optional<MongoEntity> mongoObjects = mongoEntityRepo.findByNdcAndDosageStrengthAndQuantityAndZipcode(requestObject.getDrugNDC(),
                 requestObject.getDosageStrength().toUpperCase().replaceAll("[MG|MCG|ML|MG-MCG|%]", "").trim(), String.valueOf(requestObject.getQuantity()), requestObject.getZipcode());
@@ -473,32 +843,32 @@ public class PriceController {
                 aveDiff = (Double.parseDouble(mongoObjects.get().getAverage()) - Double.parseDouble(currentObject.getAverage()));
 
             if (!currentObject.getRecommendedPrice().equalsIgnoreCase(NA))
-                recommendedDiff = Double.parseDouble(currentObject.getRecommendedPrice()) - (Double.parseDouble(currentObject.getPrograms().get(0).getPrice()));
+                recommendedDiff = Double.parseDouble(currentObject.getRecommendedPrice()) - (Double.parseDouble(currentObject.getPrograms().get(0).getPrices().get(0).getPrice()));
 
             currentObject.setAverageDiff(String.valueOf(aveDiff));
 
             currentObject.setRecommendedDiff(String.valueOf(recommendedDiff));
 
             if (!CollectionUtils.isEmpty(mongoObjects.get().getPrograms()) && !CollectionUtils.isEmpty(currentObject.getPrograms())) {
-                List<Program> mongoPrograms = mongoObjects.get().getPrograms();
-                List<Program> currPrograms = currentObject.getPrograms();
+                List<Programs> mongoPrograms = mongoObjects.get().getPrograms();
+                List<Programs> currPrograms = currentObject.getPrograms();
 
                 mongoPrograms.forEach(mongo -> {
 
-                    for (Program curr : currPrograms) {
+                    for (Programs curr : currPrograms) {
 
-                        if (curr.getProgram().equalsIgnoreCase(mongo.getProgram())) {
+                        if (curr.getPrices().get(0).getProgram().equalsIgnoreCase(mongo.getPrices().get(0).getProgram())) {
 
-                            if (!curr.getPrice().equalsIgnoreCase(NA) && !curr.getPrice().isEmpty()) {
+                            if (!curr.getPrices().get(0).getPrice().equalsIgnoreCase(NA) && !curr.getPrices().get(0).getPrice().isEmpty()) {
 
                                 Double diff, sum;
-                                if (!mongo.getPrice().contains(NA)) {
+                                if (!mongo.getPrices().get(0).getPrice().contains(NA)) {
 
-                                    diff = ((Double.parseDouble(mongo.getPrice())) - Double.parseDouble(curr.getPrice()));
-                                    sum = Double.parseDouble(mongo.getPrice()) + Double.parseDouble(curr.getPrice());
+                                    diff = ((Double.parseDouble(mongo.getPrices().get(0).getPrice())) - Double.parseDouble(curr.getPrices().get(0).getPrice()));
+                                    sum = Double.parseDouble(mongo.getPrices().get(0).getPrice()) + Double.parseDouble(curr.getPrices().get(0).getPrice());
                                     double p = (diff / (sum / 2)) * 100d;
-                                    curr.setDiff(String.valueOf(diff));
-                                    curr.setDiffPerc(String.valueOf(p));
+                                    curr.getPrices().get(0).setDiff(String.valueOf(diff));
+                                    curr.getPrices().get(0).setDiffPerc(String.valueOf(p));
 
                                 }
 
@@ -513,5 +883,6 @@ public class PriceController {
         return currentObject;
 
     }
+
 
 }
