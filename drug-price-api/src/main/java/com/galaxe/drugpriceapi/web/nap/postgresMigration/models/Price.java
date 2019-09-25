@@ -22,23 +22,24 @@ public class Price {
     @GeneratedValue
     int id;
     @Column
-    double price;
+    Double price;
     @Column
     String pharmacy ;
     @Column
-    double difference;
+    Double difference;
     @Column
     int programId;
     @Column
     int drugDetailsId;
     @Column
-    double recommendedPrice;
+    Double recommendedPrice;
     @Column
-    double lowestMarketPrice;
+    Double lowestMarketPrice;
     @Column
-    double averagePrice;
+    Double averagePrice;
     @Column
     Integer rank;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     Date createdat;
