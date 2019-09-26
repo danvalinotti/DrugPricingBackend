@@ -48,6 +48,8 @@ public class DrugDashboardController {
     DrugPriceController drugPriceController;
     @Autowired
     DrugAuthController drugAuthController;
+    @Autowired
+    ReportRepository reportRepository;
 
     @GetMapping(value = "/dashboard/drugs/get")
     public List<PricesAndMaster> getDashboardDrugs() {
@@ -75,6 +77,7 @@ public class DrugDashboardController {
         Profile signedInUser = profileRepository.findByUsername(userName).get(0);
         int userId = signedInUser.getId();
         List<String> drugList = dashboardRepository.findDistinctDrugsByUserId(userId);
+        Integer reportId = reportRepository.findFirstByOrderByTimestampDesc().getId();
         List<DrugMaster> drugMasters = new ArrayList<>();
         List<MongoEntity> mongoEntities = new ArrayList<>();
 
@@ -92,18 +95,17 @@ public class DrugDashboardController {
                 mongoEntity.setName(drugMaster.getName());
                 mongoEntity.setZipcode(drugMaster.getZipCode());
 
-                List<Price> prices = priceRepository.findByDrugDetailsId(drugMaster.getId());
+                List<Price> prices = priceRepository.findByDrugDetailsIdAndRankAndReportId(drugMaster.getId(),0,reportId);
                 List<Programs> programs = new ArrayList<>();
                 mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
                 mongoEntity.setAverage(prices.get(0).getAveragePrice() + "");
-                Program[] programArr = new Program[6];
+                Program[] programArr = new Program[7];
 
                 for (int i = 0; i < programArr.length; i++) {
                     Program program = new Program();
                     program.setProgram(i + "");
                     program.setPrice("N/A");
                     program.setPharmacy("N/A");
-                    //programs.add(program);
                     programArr[i] = program;
                 }
                 for (Price p : prices) {
@@ -111,23 +113,23 @@ public class DrugDashboardController {
                     program.setProgram(p.getProgramId() + "");
                     program.setPrice(p.getPrice() + "");
                     program.setPharmacy(p.getPharmacy());
-                    //programs.add(program);
                     programArr[p.getProgramId()] = program;
                 }
 
 
                 List<Program> programsList = Arrays.asList(programArr);
-                Programs programs1 = new Programs();
+                List<Programs> programs1 = new ArrayList<>();
                 for (Program prog :programsList) {
                     List<Program> newList= new ArrayList<>();
                     newList.add(prog);
-                    programs1.setPrices(newList);
-                    programs.add(programs1);
+                    Programs programs2 = new Programs();
+                    programs2.setPrices(newList);
+                    programs1.add(programs2);
                 }
-                mongoEntity.setPrograms(programs);
+                mongoEntity.setPrograms(programs1);
                 mongoEntities.add(mongoEntity);
             }catch(Exception ex){
-
+                ex.printStackTrace();
             }
         }
 
