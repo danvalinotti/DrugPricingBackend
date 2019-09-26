@@ -121,7 +121,7 @@ public class DrugReportController {
         List<Integer> drug_ids = new ArrayList<>();
         List<Price> deletePrices = new ArrayList<>();
         for (Price price: prices) {
-            if(price.getProgramId() == 2){
+            if(price.getProgramId() == 1){
                 if(!drug_ids.contains(price.getDrugDetailsId())){
                     drug_ids.add(price.getDrugDetailsId());
                 }else{
