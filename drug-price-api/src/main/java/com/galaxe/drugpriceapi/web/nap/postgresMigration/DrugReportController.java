@@ -34,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityManager;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -82,6 +83,8 @@ public class DrugReportController {
     DrugRuleController drugRuleController;
     @Autowired
     ReportRowRepository reportRowRepository;
+    @Autowired
+    EntityManager entityManager;
     int count = 0;
     Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
@@ -583,6 +586,7 @@ public class DrugReportController {
 
         List<List<List<String>>> sheets = new ArrayList<>();
         List<String> zipCodes = new ArrayList<>();
+
         zipCodes.add("90036");
         zipCodes.add("30606");
         zipCodes.add("60639");
@@ -590,10 +594,12 @@ public class DrugReportController {
         zipCodes.add("75034");
         for (String zip: zipCodes) {
 
-            List<ReportRow>reportRows = this.reportRowRepository.exportReportByZipCode(reportId, zip);
+            List<ReportRow>reportRows = new ArrayList<>();
+            reportRows = this.reportRowRepository.exportReportByZipCode(reportId, zip);
             List<List<String>> rows = new ArrayList<>();
             List<String> data0 = new ArrayList<>();
             data0.add("Drug Name");
+            data0.add("Drug Rank");
             data0.add("Drug NDC");
             data0.add("Drug GSN");
             data0.add("Dosage Strength");
@@ -618,8 +624,10 @@ public class DrugReportController {
             rows.add(data0);
             for (ReportRow reportRow:reportRows) {
 
+                try{
                 List<String> data = new ArrayList<>();
-                data.add(reportRow.name);
+                data.add(reportRow.getName());
+                data.add(reportRow.getRank());
                 data.add(reportRow.getNdc());
                 try{
                     DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
@@ -666,6 +674,10 @@ public class DrugReportController {
                 try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
                         .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
                 rows.add(data);
+                }catch (Exception ex){
+                    System.out.println("LEFT OUT OF ROW");
+                }
+                this.entityManager.detach(reportRow);
             }
             sheets.add(rows);
         }
@@ -1063,7 +1075,7 @@ public class DrugReportController {
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
         PrintStream fileStream = null;
-        String fileName = "poi-generated-file.xlsx";
+        String fileName = "/home/files/poi-generated-file.xlsx";
 
         Workbook workbook = new XSSFWorkbook();
 
