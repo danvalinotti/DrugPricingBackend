@@ -16,7 +16,7 @@ import javax.persistence.Id;
 @Entity
 public class ReportRow {
     @Id
-    Integer id ;
+    Integer id;
     String gsn;
     String ndc;
     String zip_code;
@@ -39,6 +39,6 @@ public class ReportRow {
     String pharm_price ;
     String pharm_pharmacy  ;
     String recommended_price;
-
+    String rank;
 
 }
