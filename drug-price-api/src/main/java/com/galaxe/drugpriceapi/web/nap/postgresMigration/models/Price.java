@@ -39,6 +39,8 @@ public class Price {
     Double averagePrice;
     @Column
     Integer rank;
+    @Column
+    Boolean uncPriceFlag;
 
 
     @Temporal(TemporalType.TIMESTAMP)
