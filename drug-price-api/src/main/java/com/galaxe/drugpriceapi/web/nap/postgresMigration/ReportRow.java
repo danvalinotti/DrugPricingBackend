@@ -40,5 +40,6 @@ public class ReportRow {
     String pharm_pharmacy  ;
     String recommended_price;
     String rank;
+//    Boolean unc_price_flag;
 
 }
