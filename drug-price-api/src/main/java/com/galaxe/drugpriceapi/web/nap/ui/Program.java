@@ -17,6 +17,8 @@ public class Program {
 
     String price;
 
+    Boolean uncPriceFlag;
+
     String diff;
 
     String diffPerc;
