@@ -627,7 +627,7 @@ public class DrugReportController {
                 try{
                 List<String> data = new ArrayList<>();
                 data.add(reportRow.getName());
-                data.add(reportRow.getRank());
+                data.add((Integer.parseInt(reportRow.getRank())+1)+"");
                 data.add(reportRow.getNdc());
                 try{
                     DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
