@@ -13,7 +13,7 @@ import java.util.List;
 public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
 
     @Query(value= " Select ROW_NUMBER() OVER (ORDER BY s.name) AS id , * from  ( (SELECT\n" +
-            "            t.name, t.rank, t.drug_id,            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, \n" +
+            "            t.name, t.rank, t.drug_id, t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, t.unc_price_flag, \n" +
             " max(case when t.program_id = 0  then t.price end) AS insiderx_price, \n" +
             " max(case when t.program_id = 0  then t.pharmacy end) AS insiderx_pharmacy, \n" +
             " max(case when t.program_id = 1  then t.price end) AS pharm_price, \n" +
@@ -30,7 +30,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             " max(case when t.program_id = 5  then t.pharmacy end) AS blink_pharmacy\n" +
             " FROM \n" +
             "   ( SELECT  drug_master.name, drug_master.id as drug_id, drug_master.ndc, drug_master.gsn,drug_master.zip_code,  price.price, price.program_id, \n" +
-            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank \n" +
+            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy , price.unc_price_flag, price.rank \n" +
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 0) t\n" +
@@ -40,7 +40,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
             "            t.name, t.rank, t.drug_id,\n" +
-            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, \n" +
+            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, t.unc_price_flag, \n" +
             "            max(case when t.program_id = 0  then t.price end) AS insiderx_price, \n" +
             "\t\t\tmax(case when t.program_id = 0  then t.pharmacy end) AS insiderx_pharmacy, \n" +
             "            max(case when t.program_id = 1  then t.price end) AS pharm_price, \n" +
@@ -57,7 +57,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t   max(case when t.program_id = 5  then t.pharmacy end) AS blink_pharmacy\n" +
             "              FROM \n" +
             "            ( SELECT  drug_master.name, drug_master.id as drug_id, drug_master.ndc, drug_master.gsn,drug_master.zip_code,  price.price, price.program_id, \n" +
-            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank \n" +
+            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy , price.unc_price_flag, price.rank \n" +
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 1) t\n" +
@@ -67,7 +67,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
             "            t.name, t.rank, t.drug_id,\n" +
-            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, \n" +
+            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, t.unc_price_flag, \n" +
             "            max(case when t.program_id = 0  then t.price end) AS insiderx_price, \n" +
             "\t\t\tmax(case when t.program_id = 0  then t.pharmacy end) AS insiderx_pharmacy, \n" +
             "            max(case when t.program_id = 1  then t.price end) AS pharm_price, \n" +
@@ -84,7 +84,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t   max(case when t.program_id = 5  then t.pharmacy end) AS blink_pharmacy\n" +
             "              FROM \n" +
             "            ( SELECT  drug_master.name, drug_master.id as drug_id, drug_master.ndc, drug_master.gsn,drug_master.zip_code,  price.price, price.program_id, \n" +
-            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank \n" +
+            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.unc_price_flag, price.rank \n" +
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 2) t\n" +
@@ -94,7 +94,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
             "            t.name, t.rank, t.drug_id,\n" +
-            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, \n" +
+            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, t.unc_price_flag,\n" +
             "            max(case when t.program_id = 0  then t.price end) AS insiderx_price, \n" +
             "\t\t\tmax(case when t.program_id = 0  then t.pharmacy end) AS insiderx_pharmacy, \n" +
             "            max(case when t.program_id = 1  then t.price end) AS pharm_price, \n" +
@@ -111,7 +111,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "\t\t\t   max(case when t.program_id = 5  then t.pharmacy end) AS blink_pharmacy\n" +
             "              FROM \n" +
             "            ( SELECT  drug_master.name, drug_master.id as drug_id, drug_master.ndc, drug_master.gsn,drug_master.zip_code,  price.price, price.program_id, \n" +
-            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank \n" +
+            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy , price.unc_price_flag, price.rank \n" +
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 3) t\n" +
@@ -121,7 +121,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "    union all\n" +
             "   (SELECT\n" +
             "            t.name, t.rank, t.drug_id,\n" +
-            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code, \n" +
+            "            t.dosage_strength, t.quantity,  t.ndc, t.gsn,  t.recommended_price, t.zip_code,  t.unc_price_flag, \n" +
             "            max(case when t.program_id = 0  then t.price end) AS insiderx_price, \n" +
             "   max(case when t.program_id = 0  then t.pharmacy end) AS insiderx_pharmacy, \n" +
             "            max(case when t.program_id = 1  then t.price end) AS pharm_price, \n" +
@@ -138,7 +138,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "   max(case when t.program_id = 5  then t.pharmacy end) AS blink_pharmacy\n" +
             "              FROM \n" +
             "            ( SELECT  drug_master.name, drug_master.id as drug_id, drug_master.ndc, drug_master.gsn,drug_master.zip_code,  price.price, price.program_id, \n" +
-            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank \n" +
+            "             drug_master.quantity, drug_master.dosage_strength, price.recommended_price , price.pharmacy ,price.rank, price.unc_price_flag \n" +
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 4) t\n" +
