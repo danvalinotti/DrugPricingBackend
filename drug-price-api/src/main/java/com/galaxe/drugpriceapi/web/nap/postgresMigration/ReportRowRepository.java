@@ -35,7 +35,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 0) t\n" +
             "\t\t\t  \t\t\t \n" +
-            "              GROUP BY t.name , t.dosage_strength,t.rank,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.zip_code\n" +
+            "              GROUP BY t.name , t.dosage_strength,t.rank,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price,t.unc_price_flag, t.zip_code\n" +
             "              ORDER BY t.name, t.dosage_strength )\n" +
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
@@ -62,7 +62,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 1) t\n" +
             "\t\t\t  \t\t\t \n" +
-            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.zip_code,t.rank\n" +
+            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.unc_price_flag, t.zip_code,t.rank\n" +
             "              ORDER BY t.name, t.dosage_strength )\n" +
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
@@ -89,7 +89,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 2) t\n" +
             "\t\t\t  \t\t\t \n" +
-            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.zip_code,t.rank\n" +
+            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.unc_price_flag, t.zip_code,t.rank\n" +
             "              ORDER BY t.name, t.dosage_strength )\n" +
             "\t\t\t  union all\n" +
             "\t\t\t   (SELECT\n" +
@@ -116,7 +116,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "\t\t\t  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 3) t\n" +
             "\t\t\t  \t\t\t \n" +
-            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.zip_code,t.rank\n" +
+            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.unc_price_flag, t.zip_code,t.rank\n" +
             "              ORDER BY t.name, t.dosage_strength )\n" +
             "    union all\n" +
             "   (SELECT\n" +
@@ -142,7 +142,7 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "             from report_drugs full outer join price on  price.id = report_drugs.price_id\n" +
             "             full outer join drug_master on price.drug_details_id = drug_master.id \n" +
             "  where report_drugs.report_id = ?1 and drug_master.zip_code = ?2 and price.rank = 4) t\n" +
-            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.zip_code,t.rank\n" +
+            "              GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.unc_price_flag, t.zip_code,t.rank\n" +
             "              ORDER BY t.name, t.dosage_strength )) s  ORDER BY name ,dosage_strength, rank  " , nativeQuery = true)
     List<ReportRow> exportReportByZipCode(Integer reportId, String zip);
 }
