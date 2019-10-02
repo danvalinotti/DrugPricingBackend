@@ -375,9 +375,9 @@ public class PriceController {
 //            mongoEntity.setDosageUOM(requestObject.get);
             mongoEntity.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
             mongoEntity.setAverage(prices.get(0).getAveragePrice()+"");
-            WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+requestObject.getDrugName().toLowerCase().replace(" ", "-")+"/details?locale=en-US");
+            String url = "https://insiderx.com/request/medication/"+requestObject.getDrugName().toLowerCase().replace("-","--").replace(" ", "-").replace("/","-")+"/details?locale=en-US";
+            WebClient webClient = WebClient.create(url);
             DrugDescription description = webClient.get().exchange().flatMap(clientResponse -> clientResponse.bodyToMono(DrugDescription.class)).block();
-
             mongoEntity.setDescription(description.getDescription());
             System.out.println("FOUND PRICE FROM DATABASE");
             return mongoEntity;
