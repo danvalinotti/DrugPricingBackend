@@ -257,8 +257,9 @@ public class DrugReportController {
             data0.add("Dosage Strength");
             data0.add("Quantity");
             data0.add("Zip Code");
-            data0.add("InsideRxResponse Price");
-            data0.add("InsideRxResponse Pharmacy");
+            data0.add("InsideRx Price");
+            data0.add("InsideRx UNC Price");
+            data0.add("InsideRx Pharmacy");
             data0.add("GoodRx Price");
             data0.add("GoodRx Pharmacy");
             data0.add("U.S Pharmacy Card Price");
@@ -294,6 +295,8 @@ public class DrugReportController {
                 data.add(reportRow.quantity);
                 data.add(reportRow.getZip_code());
                 try{data.add(new BigDecimal(reportRow.insiderx_price)
+                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                try{data.add(new BigDecimal(reportRow.unc_price)
                         .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
                 if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals(""))
                 {data.add(reportRow.insiderx_pharmacy);}else{data.add("N/A");}
