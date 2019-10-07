@@ -40,6 +40,6 @@ public class ReportRow {
     public String pharm_pharmacy  ;
     public String recommended_price;
     public String rank;
-    public Boolean unc_price;
+    public String unc_price;
 
 }
