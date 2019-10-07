@@ -36,7 +36,7 @@ public class Price {
     @Column
     Integer rank;
     @Column
-    Boolean uncPriceFlag;
+    Double uncPrice;
 
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -51,5 +51,6 @@ public class Price {
 //        }
 
     }
+
 
 }

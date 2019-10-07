@@ -89,6 +89,7 @@ public class PriceController {
                     prog.setProgram(programIdToString(price.getProgramId()));
                     prog.setDiff(price.getDifference()+"");
                     prog.setPrice(price.getPrice()+"");
+                    prog.setUncPriceFlag(price.getUncPrice());
                     prog.setUncPriceFlag(price.getUncPriceFlag());
                     progs.add(prog);
 

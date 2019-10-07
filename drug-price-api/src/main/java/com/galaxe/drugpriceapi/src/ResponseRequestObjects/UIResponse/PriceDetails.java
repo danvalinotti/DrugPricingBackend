@@ -17,6 +17,8 @@ public class PriceDetails {
 
     String price;
 
+    String uncPrice;
+
     Boolean uncPriceFlag;
 
     String diff;
