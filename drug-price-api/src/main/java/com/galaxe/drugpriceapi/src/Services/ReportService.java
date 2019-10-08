@@ -8,6 +8,7 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.GenerateManualReportRe
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
 import com.galaxe.drugpriceapi.src.TableModels.DrugMaster;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
+import com.galaxe.drugpriceapi.src.TableModels.ReportRow;
 import com.galaxe.drugpriceapi.src.TableModels.SavedManualReportDetails;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -57,7 +58,9 @@ public class ReportService {
         }
         int count = 0;
         System.out.println("Starting rows");
+        System.out.println("Starting");
         for (List<String> row : rows) {
+            System.out.println("first");
             if (count == 0) {
 
             } else {
@@ -65,18 +68,29 @@ public class ReportService {
 
                 int cellCount = 0;
                 for (String cell : row) {
+                    System.out.println(cell);
                     r.createCell(cellCount).setCellValue(cell);
+                    if(rows.size()-1==count){
+                        System.out.println("start Autosize");
+                        sheet.autoSizeColumn(cellCount);
+                        System.out.println("End autosize");
+                    }
 
                     cellCount++;
                 }
             }
+            System.out.println("count");
+            System.out.println(count);
+
             count++;
         }
         System.out.println("Rows finished");
-        for (int i = 0; i < rows.get(0).size(); i++) {
-            sheet.autoSizeColumn(i);
-
-        }
+//        for (int i = 0; i < rows.get(0).size(); i++) {
+//            sheet.autoSizeColumn(i);
+//
+//        }
+        long startFile= System.currentTimeMillis();
+        long endFile = 0;
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
@@ -93,6 +107,9 @@ public class ReportService {
         File file = new File(fileName);
         System.out.println(file.length());
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "poi-generated-file.xlsx");
+        endFile = System.currentTimeMillis();
+        System.out.println("File Creation");
+        System.out.println(endFile-startFile);
         return ResponseEntity.ok()
                 .headers(headers)
                 .contentLength(file.length())
@@ -101,12 +118,12 @@ public class ReportService {
 
     }
 
-    public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<List<String>>> rows) {
+    public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<ReportRow>> reportRows, List<String> header) {
 
-//        String fileName = "/home/files/poi-generated-file.xlsx";
         String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
-
+        long start = System.currentTimeMillis();
+        long end = 0;
         Sheet sheet1 = workbook.createSheet("90036");
         Sheet sheet2 = workbook.createSheet("30606");
         Sheet sheet3 = workbook.createSheet("60639");
@@ -120,7 +137,8 @@ public class ReportService {
         sheets.add(sheet4);
         sheets.add(sheet5);
 
-        for (int s = 0 ; s <rows.size();s++) {
+        for (int s = 0 ; s <sheets.size();s++) {
+            start = System.currentTimeMillis();
             Sheet sheet = sheets.get(s);
             Font headerFont = workbook.createFont();
             headerFont.setBold(true);
@@ -131,35 +149,44 @@ public class ReportService {
             headerCellStyle.setFont(headerFont);
 
             Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < rows.get(s).get(0).size(); i++) {
+            //FOR SETTING THE HEADER BOLD
+            for (int i = 0; i < header.size(); i++) {
                 Cell cell = headerRow.createCell(i);
-                cell.setCellValue(rows.get(s).get(0).get(i));
+                cell.setCellValue(header.get(i));
                 cell.setCellStyle(headerCellStyle);
             }
             int count = 0;
             System.out.println("Starting rows");
-            for (List<String> row : rows.get(s)) {
-                if (count == 0) {
 
-                } else {
-                    Row r = sheet.createRow(count);
+            for (int j = 0; j<reportRows.get(s).size();j++) {
 
-                    int cellCount = 0;
-                    for (String cell : row) {
-                        r.createCell(cellCount).setCellValue(cell);
+                Row r = sheet.createRow(count);
 
-                        cellCount++;
+                for(int column = 0;column<header.size();column++){
+                    if(column == 3){
+                        try {
+                            DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRows.get(s).get(j).getDrug_id(), 2).get(0);
+                            String gsn = drugRequest.getGsn();
+                            r.createCell(3).setCellValue(gsn);
+                        } catch (Exception ex) {
+                            r.createCell(3).setCellValue(reportRows.get(s).get(j).getGsn());
+                        }
+                    }else{
+                        r.createCell(column).setCellValue(reportRows.get(s).get(j).get(column));
                     }
-                    cellCount = 0;
+                    if(j==reportRows.get(s).size()-1){
+                        sheet.autoSizeColumn(column);
+                    }
                 }
-                count++;
             }
-            System.out.println("Rows finished");
-            for (int i = 0; i < rows.get(0).size(); i++) {
-                sheet.autoSizeColumn(i);
-
-            }
+            end = System.currentTimeMillis();
+            System.out.println("CREATE SHEET TIME");
+            System.out.println(end-start);
         }
+
+
+        long startFile = System.currentTimeMillis();
+        long endFile = 0;
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
@@ -178,11 +205,15 @@ public class ReportService {
         }
         HttpHeaders headers = new HttpHeaders();
         File file = new File(fileName);
-        System.out.println(file.length());
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + "poi-generated-file.xlsx");
+        endFile = System.currentTimeMillis();
+        System.out.println("File Creation");
+        System.out.println(endFile-startFile);
+         end = System.currentTimeMillis();
+        System.out.println("ExportWithMultipleSheets");
+        System.out.println(end-start);
         return ResponseEntity.ok()
                 .headers(headers)
-                // .contentLength(resumelength)
                 .contentLength(file.length())
                 .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
                 .body(resource);
