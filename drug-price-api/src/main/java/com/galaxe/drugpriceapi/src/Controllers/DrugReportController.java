@@ -106,7 +106,7 @@ public class DrugReportController {
     @PostMapping("/edit/drug")
     public void editDrug(@RequestBody DrugMaster drugMaster) {
         DrugMaster old  = drugMasterRepository.findById(drugMaster.getId()).get();
-       List<DrugMaster> oldDrugs = drugMasterRepository.findAllByNDCQuantity(old.getNdc(),old.getQuantity());
+        List<DrugMaster> oldDrugs = drugMasterRepository.findAllByNDCQuantity(old.getNdc(),old.getQuantity());
         for (DrugMaster oldDrug: oldDrugs ) {
             oldDrug.setReportFlag(false);
             drugMasterRepository.save(oldDrug);
@@ -157,7 +157,7 @@ public class DrugReportController {
 
             try {
                     if(i ==0){
-                        loc1=  CompletableFuture.completedFuture(reportService.makeDrugAndRequests(UIRequestObject));
+                        loc1=  CompletableFuture.completedFuture(reportService.makeDrugAndRequests(UIRequestObject));//FAILS
                     }else if(i ==1){
                         loc2=  CompletableFuture.completedFuture(reportService.makeDrugAndRequests(UIRequestObject));
                     }else if(i ==2){
