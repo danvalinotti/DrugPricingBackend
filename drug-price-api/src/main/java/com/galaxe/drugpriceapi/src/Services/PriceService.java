@@ -6,6 +6,7 @@ import com.galaxe.drugpriceapi.src.Helpers.DrugBrand;
 import com.galaxe.drugpriceapi.src.Helpers.PricesAndMaster;
 import com.galaxe.drugpriceapi.src.Repositories.DrugMasterRepository;
 import com.galaxe.drugpriceapi.src.Repositories.PriceRepository;
+import com.galaxe.drugpriceapi.src.Repositories.ReportRepository;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.BlinkHealthResponse.BlinkResponse;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.GoodRxResponse.GoodRxResponse;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.InsideRxResponse.InsideRxPrice;
@@ -41,7 +42,7 @@ public class PriceService {
     @Autowired
     PriceRepository priceRepository;
     @Autowired
-    DrugMasterController drugMasterController;
+    ReportRepository reportRepository;
     @Autowired
     BlinkClient blinkClient;
     @Autowired
@@ -667,6 +668,16 @@ public class PriceService {
         finalDrugObject.setAverageDiff("0.0");
 
         return finalDrugObject;
+
+    }
+    public void updateDifferences(){
+        Integer reportId = reportRepository.findFirstByOrderByTimestampDesc().getId();
+        List<Price> newPrices =  priceRepository.findAllPricesInReport(reportId);
+        for (Price price: newPrices) {
+            Price oldPrice = priceRepository.getOldPriceInReport(reportId-1, price.getDrugDetailsId(),price.getProgramId(),price.getRank());
+            Double difference = price.getPrice()- oldPrice.getPrice();
+            price.setDifference(difference);
+        }
 
     }
 
