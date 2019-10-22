@@ -57,7 +57,10 @@ public class DrugDashboardController {
         Profile signedInUser = profileRepository.findByUsername(userName).get(0);
         int userId = signedInUser.getId();
         List<String> drugList = dashboardRepository.findDistinctDrugsByUserId(userId);
+        System.out.println(userId);
+        drugList.forEach(drug -> System.out.println(drug));
         Integer reportId = reportRepository.findFirstByOrderByTimestampDesc().getId();
+        System.out.println("REPORT ID " + reportId);
         List<DrugMaster> drugMasters = new ArrayList<>();
         List<UIResponseObject> mongoEntities = new ArrayList<>();
 
@@ -75,7 +78,8 @@ public class DrugDashboardController {
                 UIResponseObject.setName(drugMaster.getName());
                 UIResponseObject.setZipcode(drugMaster.getZipCode());
 
-                List<Price> prices = priceRepository.findByDrugDetailsIdAndRankAndReportId(drugMaster.getId(),0,reportId);
+                System.out.println(drugMaster.getId() + ", " + reportId);
+                List<Price> prices = priceRepository.findByDrugDetailsIdAndRankAndReportId(drugMaster.getId(),reportId);
                 List<Programs> programs = new ArrayList<>();
                 UIResponseObject.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
                 UIResponseObject.setAverage(prices.get(0).getAveragePrice() + "");

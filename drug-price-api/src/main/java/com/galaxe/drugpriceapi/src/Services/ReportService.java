@@ -36,8 +36,11 @@ public class ReportService {
     DrugRequestRepository drugRequestRepository;
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
-//        String fileName = "/home/files/poi-generated-file.xlsx";
-        String fileName = "poi-generated-file.xlsx";
+        // Production
+        String fileName = "/home/files/poi-generated-file.xlsx";
+
+        // QA/dev
+//        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("DrugReport");
 
@@ -103,8 +106,11 @@ public class ReportService {
 
     public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<List<String>>> rows) {
 
-//        String fileName = "/home/files/poi-generated-file.xlsx";
-        String fileName = "poi-generated-file.xlsx";
+        // Production
+        String fileName = "/home/files/poi-generated-file.xlsx";
+
+        // QA/Dev
+//        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
 
         Sheet sheet1 = workbook.createSheet("90036");
