@@ -590,7 +590,7 @@ public class PriceService {
             programs.add(p);
         }
         List<PriceDetails> programsList = new ArrayList<>();
-        programsList.add(new PriceDetails("GoodRx", "Coming soon", NA,NA, false, ZERO, ZERO));
+        programsList.add(new PriceDetails("GoodRx", "N/A", NA,NA, false, ZERO, ZERO));
         Programs p = new Programs();
         p.setPrices(programsList);
         programs.add(p);

@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> {
 
+    DrugMaster findDrugMasterById(int id);
+
     @Query(value= "SELECT * FROM drug_master "+
             "WHERE drug_master.ndc = ?1 AND drug_master.quantity = ?2 AND drug_master.zip_code= ?3 ",nativeQuery = true)
     List<DrugMaster> findAllByFields(String ndc, double quantity, String zipcode);
