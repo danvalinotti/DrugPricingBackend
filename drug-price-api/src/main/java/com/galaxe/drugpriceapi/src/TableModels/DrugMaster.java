@@ -10,7 +10,7 @@ import javax.persistence.*;
 @AllArgsConstructor
 @Getter
 @Setter
-public class DrugMaster {
+public class  DrugMaster {
     @Id
     @GeneratedValue
     int id;
