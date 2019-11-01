@@ -309,7 +309,26 @@ public class DrugReportController {
                     if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals("")) {
                         data.add(reportRow.insiderx_pharmacy);
                     } else {
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try {
                         data.add(new BigDecimal(reportRow.goodrx_price)
@@ -320,7 +339,26 @@ public class DrugReportController {
                     if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals("")) {
                         data.add(reportRow.goodrx_pharmacy);
                     } else {
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try {
                         data.add(new BigDecimal(reportRow.pharm_price)
@@ -331,7 +369,26 @@ public class DrugReportController {
                     if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals("")){
                         data.add(reportRow.pharm_pharmacy);
                     }else{
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try{
                         data.add(new BigDecimal(reportRow.wellrx_price)
@@ -342,7 +399,26 @@ public class DrugReportController {
                     if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals("")){
                         data.add(reportRow.wellrx_pharmacy);
                     }else{
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try{
                         data.add(new BigDecimal(reportRow.medimpact_price)
@@ -353,7 +429,26 @@ public class DrugReportController {
                     if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals("")){
                         data.add(reportRow.medimpact_pharmacy);
                     }else{
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try{
                         data.add(new BigDecimal(reportRow.singlecare_price)
@@ -364,7 +459,26 @@ public class DrugReportController {
                     if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals("")){
                         data.add(reportRow.singlecare_pharmacy);
                     }else{
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try{
                         data.add(new BigDecimal(reportRow.blink_price)
@@ -375,7 +489,26 @@ public class DrugReportController {
                     if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals("")){
                         data.add(reportRow.blink_pharmacy);
                     }else{
-                        data.add("N/A");
+                        switch (reportRow.getRank()) {
+                            case "0":
+                                data.add("Walgreens");
+                                break;
+                            case "1":
+                                data.add("Wal-Mart");
+                                break;
+                            case "2":
+                                data.add("CVS");
+                                break;
+                            case "3":
+                                data.add("Other");
+                                break;
+                            case "4":
+                                data.add("Kroger");
+                                break;
+                            default:
+                                data.add("N/A");
+                                break;
+                        }
                     }
                     try{
                         data.add(new BigDecimal(reportRow.recommended_price)
@@ -388,6 +521,7 @@ public class DrugReportController {
                                 .setScale(2, RoundingMode.HALF_UP).toString());
                     }catch (Exception ex){
                         data.add("N/A");
+
                     }
                     rows.add(data);
                 }catch (Exception ex){
