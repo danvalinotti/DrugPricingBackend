@@ -20,6 +20,10 @@ public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> 
             "WHERE drug_master.ndc = ?1 AND drug_master.quantity = ?2 ",nativeQuery = true)
     List<DrugMaster> findAllByNDCQuantity(String ndc, double quantity);
 
+    @Query(value= "SELECT * FROM drug_master "+
+            "WHERE drug_master.ndc = ?1 AND drug_master.quantity = ?2 AND drug_master.zip_code = ?3 limit 1",nativeQuery = true)
+    DrugMaster findByNDCQuantityZipcode(String ndc, double quantity, String zipcode);
+
     @Query(value = "WITH summary AS ( " +
             " SELECT *, " +
             " ROW_NUMBER() OVER(PARTITION BY d.ndc, d.quantity " +

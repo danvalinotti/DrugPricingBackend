@@ -344,10 +344,11 @@ public class PriceService {
         LocatedDrug locatedDrug = medImpactFuture.get();
         PharmacyPricings singleCarePrice = singleCareFuture.get();
         BlinkResponse blinkResponse = null;
+        GoodRxResponse goodRxResponse = goodRxFuture.get();
         if (blinkFuture != null)
             blinkResponse = blinkClient.getBlinkPharmacyPrice(UIRequestObject).get();
 
-        UIResponseObject entity = constructEntity(usPharmacyPrices, insideRxPrices, UIRequestObject, wellRx, locatedDrug, singleCarePrice, blinkResponse);//BADDDDDD
+        UIResponseObject entity = constructEntity(usPharmacyPrices, insideRxPrices, UIRequestObject, wellRx, locatedDrug, singleCarePrice, blinkResponse, goodRxResponse);//BADDDDDD
 
         return entity;
 
@@ -438,7 +439,7 @@ public class PriceService {
     public UIResponseObject constructEntity
             (List<USPharmResponse> usCardProgramResult, List<InsideRxResponse> insideRxProgramResult,
              UIRequestObject reqObject, List<Drugs> wellRxProgramResult, LocatedDrug medImpactLocatedDrug,
-             PharmacyPricings singlecarePrice, BlinkResponse blinkResponse) {
+             PharmacyPricings singlecarePrice, BlinkResponse blinkResponse, GoodRxResponse goodRxResponse) {
 
         UIResponseObject finalDrugObject = new UIResponseObject();
         Double sum = 0.0;
@@ -588,6 +589,11 @@ public class PriceService {
             Programs p = new Programs();
             p.setPrices(programsList);
             programs.add(p);
+        }
+
+        if (goodRxResponse != null) {
+//            WebClient webClient = WebClient.create("https://api.uspharmacycard.com/drug/lookup/name/");
+            System.out.println("good");
         }
         List<PriceDetails> programsList = new ArrayList<>();
         programsList.add(new PriceDetails("GoodRx", "N/A", NA,NA, false, ZERO, ZERO));

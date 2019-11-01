@@ -239,10 +239,10 @@ public class DrugReportController {
         List<List<List<String>>> sheets = new ArrayList<>();
         List<String> zipCodes = new ArrayList<>();
 
-        zipCodes.add("90036");
-        zipCodes.add("30606");
-        zipCodes.add("60639");
-        zipCodes.add("10023");
+        zipCodes.add("92648");
+        zipCodes.add("30062");
+        zipCodes.add("60657");
+        zipCodes.add("07083");
         zipCodes.add("75034");
         for (String zip: zipCodes) {
 
@@ -278,56 +278,117 @@ public class DrugReportController {
             for (ReportRow reportRow:reportRows) {
 
                 try{
-                List<String> data = new ArrayList<>();
-                data.add(reportRow.getName());
-                data.add((Integer.parseInt(reportRow.getRank())+1)+"");
-                data.add(reportRow.getNdc());
-                try{
-                    DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
-                    String gsn = drugRequest.getGsn();
-                    data.add(gsn);
-                }catch (Exception ex){
-                    data.add(reportRow.getGsn());
-                }
+                    List<String> data = new ArrayList<>();
+                    data.add(reportRow.getName());
+                    data.add((Integer.parseInt(reportRow.getRank())+1)+"");
+                    data.add(reportRow.getNdc());
+                    try{
+                        DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
+                        String gsn = drugRequest.getGsn();
+                        data.add(gsn);
+                    }catch (Exception ex){
+                        data.add(reportRow.getGsn());
+                    }
 
 
-                data.add(reportRow.dosage_strength);
-                data.add(reportRow.quantity);
-                data.add(reportRow.getZip_code());
-                try{data.add(new BigDecimal(reportRow.insiderx_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.unc_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals(""))
-                {data.add(reportRow.insiderx_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.goodrx_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals(""))
-                {data.add(reportRow.goodrx_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.pharm_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals(""))
-                {data.add(reportRow.pharm_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.wellrx_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals(""))
-                {data.add(reportRow.wellrx_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.medimpact_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals(""))
-                {data.add(reportRow.medimpact_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.singlecare_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals(""))
-                {data.add(reportRow.singlecare_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.blink_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals(""))
-                {data.add(reportRow.blink_pharmacy);}else{data.add("N/A");}
-                try{data.add(new BigDecimal(reportRow.recommended_price)
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
-                try{data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
-                        .setScale(2, RoundingMode.HALF_UP).toString());}catch (Exception ex){data.add("N/A");}
+                    data.add(reportRow.dosage_strength);
+                    data.add(reportRow.quantity);
+                    data.add(reportRow.getZip_code());
+                    try {
+                        data.add(new BigDecimal(reportRow.insiderx_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    } catch (Exception ex) {
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.unc_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    } catch (Exception ex) {
+                        data.add("N/A");
+                    }
+                    if(reportRow.insiderx_pharmacy != null && !reportRow.insiderx_pharmacy.equals("")) {
+                        data.add(reportRow.insiderx_pharmacy);
+                    } else {
+                        data.add("N/A");
+                    }
+                    try {
+                        data.add(new BigDecimal(reportRow.goodrx_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    } catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.goodrx_pharmacy != null && !reportRow.goodrx_pharmacy.equals("")) {
+                        data.add(reportRow.goodrx_pharmacy);
+                    } else {
+                        data.add("N/A");
+                    }
+                    try {
+                        data.add(new BigDecimal(reportRow.pharm_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    } catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.pharm_pharmacy != null && !reportRow.pharm_pharmacy.equals("")){
+                        data.add(reportRow.pharm_pharmacy);
+                    }else{
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.wellrx_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.wellrx_pharmacy != null && !reportRow.wellrx_pharmacy.equals("")){
+                        data.add(reportRow.wellrx_pharmacy);
+                    }else{
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.medimpact_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.medimpact_pharmacy != null && !reportRow.medimpact_pharmacy.equals("")){
+                        data.add(reportRow.medimpact_pharmacy);
+                    }else{
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.singlecare_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.singlecare_pharmacy != null && !reportRow.singlecare_pharmacy.equals("")){
+                        data.add(reportRow.singlecare_pharmacy);
+                    }else{
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.blink_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    if(reportRow.blink_pharmacy != null && !reportRow.blink_pharmacy.equals("")){
+                        data.add(reportRow.blink_pharmacy);
+                    }else{
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal(reportRow.recommended_price)
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
+                    try{
+                        data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
+                            .setScale(2, RoundingMode.HALF_UP).toString());
+                    }catch (Exception ex){
+                        data.add("N/A");
+                    }
                 rows.add(data);
                 }catch (Exception ex){
                     System.out.println("LEFT OUT OF ROW");

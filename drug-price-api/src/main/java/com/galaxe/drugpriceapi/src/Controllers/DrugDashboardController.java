@@ -334,7 +334,7 @@ public class DrugDashboardController {
         Dashboard d = new Dashboard();
         DrugMaster drugMaster;
         try {
-            drugMaster = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode()).get(0);
+            drugMaster = drugMasterRepository.findByNDCQuantityZipcode(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode());
         } catch (Exception e) {
             DrugMaster drugMaster1 = new DrugMaster();
             drugMaster1.setZipCode(UIRequestObject.getZipcode());

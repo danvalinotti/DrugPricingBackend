@@ -111,6 +111,7 @@ public class PriceController {
             UIResponseObject.setNdc(UIRequestObject.getDrugNDC());
             UIResponseObject.setDrugType(UIRequestObject.getDrugType());
             UIResponseObject.setDosageStrength(UIRequestObject.getDosageStrength());
+            UIResponseObject.setId(d.getId() + "");
             UIResponseObject.setName(UIRequestObject.getDrugName());
             UIResponseObject.setZipcode(UIRequestObject.getZipcode());
             UIResponseObject.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
