@@ -245,9 +245,10 @@ public class DrugReportController {
         zipCodes.add("07083");
         zipCodes.add("75034");
         for (String zip: zipCodes) {
+            System.out.println("Getting data for zipcode " + zip);
 
-            List<ReportRow>reportRows = new ArrayList<>();
-            reportRows = this.reportRowRepository.exportReportByZipCode(reportId, zip);
+            List<ReportRow>reportRows = this.reportRowRepository.exportReportByZipCode(reportId, zip);
+            System.out.println("Writing data to rows...");
             List<List<String>> rows = new ArrayList<>();
             List<String> data0 = new ArrayList<>();
             data0.add("Drug Name");
@@ -280,29 +281,19 @@ public class DrugReportController {
                 try{
                     List<String> data = new ArrayList<>();
                     data.add(reportRow.getName());
-                    data.add((Integer.parseInt(reportRow.getRank())+1)+"");
+                    data.add(reportRow.getRank());
                     data.add(reportRow.getNdc());
-                    try{
-                        DrugRequest drugRequest = drugRequestRepository.findByDrugIdAndProgramId(reportRow.getDrug_id(),2).get(0);
-                        String gsn = drugRequest.getGsn();
-                        data.add(gsn);
-                    }catch (Exception ex){
-                        data.add(reportRow.getGsn());
-                    }
-
-
-                    data.add(reportRow.dosage_strength);
-                    data.add(reportRow.quantity);
+                    data.add(reportRow.getGsn());
+                    data.add(reportRow.getDosage_strength());
+                    data.add(reportRow.getQuantity());
                     data.add(reportRow.getZip_code());
                     try {
-                        data.add(new BigDecimal(reportRow.insiderx_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getInsiderx_price())));
                     } catch (Exception ex) {
                         data.add("N/A");
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.unc_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getUnc_price())));
                     } catch (Exception ex) {
                         data.add("N/A");
                     }
@@ -331,8 +322,7 @@ public class DrugReportController {
                         }
                     }
                     try {
-                        data.add(new BigDecimal(reportRow.goodrx_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getGoodrx_price())));
                     } catch (Exception ex){
                         data.add("N/A");
                     }
@@ -361,8 +351,7 @@ public class DrugReportController {
                         }
                     }
                     try {
-                        data.add(new BigDecimal(reportRow.pharm_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getPharm_price())));
                     } catch (Exception ex){
                         data.add("N/A");
                     }
@@ -391,8 +380,7 @@ public class DrugReportController {
                         }
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.wellrx_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getWellrx_price())));
                     }catch (Exception ex){
                         data.add("N/A");
                     }
@@ -421,8 +409,7 @@ public class DrugReportController {
                         }
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.medimpact_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getMedimpact_price())));
                     }catch (Exception ex){
                         data.add("N/A");
                     }
@@ -451,8 +438,7 @@ public class DrugReportController {
                         }
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.singlecare_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getSinglecare_price())));
                     }catch (Exception ex){
                         data.add("N/A");
                     }
@@ -481,8 +467,7 @@ public class DrugReportController {
                         }
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.blink_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getBlink_price())));
                     }catch (Exception ex){
                         data.add("N/A");
                     }
@@ -511,14 +496,12 @@ public class DrugReportController {
                         }
                     }
                     try{
-                        data.add(new BigDecimal(reportRow.recommended_price)
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getRecommended_price())));
                     }catch (Exception ex){
                         data.add("N/A");
                     }
                     try{
-                        data.add(new BigDecimal((Double.parseDouble(reportRow.insiderx_price)-Double.parseDouble(reportRow.recommended_price)))
-                                .setScale(2, RoundingMode.HALF_UP).toString());
+                        data.add(String.format("%.2f", Double.parseDouble(reportRow.getInsiderx_price()) - Double.parseDouble(reportRow.getRecommended_price())));
                     }catch (Exception ex){
                         data.add("N/A");
 
