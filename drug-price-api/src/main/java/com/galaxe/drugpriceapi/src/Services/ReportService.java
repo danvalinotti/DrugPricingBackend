@@ -36,8 +36,8 @@ public class ReportService {
     DrugRequestRepository drugRequestRepository;
 
     public ResponseEntity<Resource> exportManualReport(List<List<String>> rows) {
-//        String fileName = "/home/files/poi-generated-file.xlsx";
-        String fileName = "poi-generated-file.xlsx";
+        String fileName = "/home/files/poi-generated-file.xlsx";
+//        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("DrugReport");
 
@@ -109,7 +109,7 @@ public class ReportService {
         // QA/Dev
 //        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
-        long start = System.currentTimeMillis();
+//        long start = System.currentTimeMillis();
         Sheet sheet1 = workbook.createSheet("92648");
         Sheet sheet2 = workbook.createSheet("30062");
         Sheet sheet3 = workbook.createSheet("60657");
@@ -153,25 +153,31 @@ public class ReportService {
 
                         cellCount++;
                     }
-                    cellCount = 0;
                 }
                 count++;
-            }
-            System.out.println("Rows finished");
-            for (int i = 0; i < rows.get(0).size(); i++) {
-                sheet.autoSizeColumn(i);
 
             }
+            System.out.println("Rows finished");
+
         }
+
+        for (int i = 0; i < sheets.size(); i++) {
+            System.out.println("Auto-sizing columns on sheet " + i);
+            for (int j = 0; j < 24; j++) {
+                sheets.get(i).autoSizeColumn(j);
+            }
+        }
+        System.out.println("Columns resized");
+
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
-//            fileOut = new FileOutputStream(fileName);
-//            InputStream fileInputStream = new FileInputStream(fileName);
-//            resource = new InputStreamResource(new FileInputStream(fileName));
-            fileOut = new FileOutputStream("poi-generated-file.xlsx");
-            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
-            resource = new InputStreamResource(new FileInputStream("poi-generated-file.xlsx"));
+            fileOut = new FileOutputStream(fileName);
+            InputStream fileInputStream = new FileInputStream(fileName);
+            resource = new InputStreamResource(new FileInputStream(fileName));
+//            fileOut = new FileOutputStream("poi-generated-file.xlsx");
+//            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
+//            resource = new InputStreamResource(fileInputStream);
             workbook.write(fileOut);
 
             fileOut.close();

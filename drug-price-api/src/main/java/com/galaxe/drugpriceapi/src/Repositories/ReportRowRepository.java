@@ -306,6 +306,6 @@ public interface ReportRowRepository extends JpaRepository<ReportRow,Integer> {
             "    GROUP BY t.name , t.dosage_strength,t.drug_id, t.quantity, t.ndc, t.gsn, t.recommended_price, t.unc_price, t.zip_code,t.rank\n" +
             "    ORDER BY t.name, t.dosage_strength )) s\n" +
             "where s.unc_price is not null ORDER BY name ,dosage_strength, rank  \n" +
-            ") p2 on p1.rank = p2.rank and p1.drug_id = p2.drug_id ) f ) g order by g.name, g.gsn, g.rank\n" , nativeQuery = true)
+            ") p2 on p1.rank = p2.rank and p1.drug_id = p2.drug_id ) f ) g order by g.name, g.ndc, g.rank\n" , nativeQuery = true)
     List<ReportRow> exportReportByZipCode(Integer reportId, String zip);
 }
