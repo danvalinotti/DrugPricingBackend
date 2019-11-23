@@ -7,19 +7,23 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.MedimpactResponse.Loca
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.MedimpactResponse.MedImpact;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
-import com.google.gson.Gson;
+import com.galaxe.drugpriceapi.src.TableModels.Price;
+import com.google.gson.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
+import static com.galaxe.drugpriceapi.src.Services.KrogerPriceService.isKroger;
+
 @Component
 public class MedImpactService {
 
@@ -31,6 +35,104 @@ public class MedImpactService {
     private Gson gson = new Gson();
     private LocatedDrug medImpactDrug = new LocatedDrug();
     private Map<String, List<LocatedDrugStrength>> medImpactGSNMap = new HashMap<>();
+
+    static ArrayList<Price> getMedImpactPrices(DrugRequest drugRequest) {
+        try {
+            // Build URL and create WebClient
+            String url = getMedImpactURL(drugRequest);
+            WebClient webClient = WebClient.create(url);
+            // Make HTTP POST request to API
+            Mono<String> s = webClient
+                    .post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .retrieve().bodyToMono(String.class);
+            String block = s.block();
+
+            // Parse JSON response
+            JsonParser parser = new JsonParser();
+            JsonElement jsonElement = parser.parse(Objects.requireNonNull(block));
+            ArrayList<Price> pricesByRank = new ArrayList<>(5);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                ArrayList<Double> lowestPrices = new ArrayList<>(5);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                ArrayList<Price> otherPrices = new ArrayList<>();
+
+                if (jsonObject != null) {
+                    // Extract JSON array of prices
+                    JsonArray prices = jsonObject.get("drugs").getAsJsonObject().get("locatedDrug").getAsJsonArray();
+                    // Loop through prices in response
+                    for (JsonElement price : prices) {
+                        JsonObject priceObject = price.getAsJsonObject();
+//                        LinkedHashMap priceMap = (LinkedHashMap) price;
+                        Price p = new Price();
+                        p.setProgramId(2);
+                        p.setPharmacy(priceObject.get("pharmacy").getAsJsonObject().get("name").getAsString());
+                        p.setPrice(priceObject.get("pricing").getAsJsonObject().get("price").getAsDouble());
+                        p.setUncPrice(null);
+
+                        if (p.getPharmacy().toUpperCase().contains("CVS")) {
+                            System.out.println("CVS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(0) == null || lowestPrices.get(0) > p.getPrice()) {
+                                p.setRank(0);
+                                pricesByRank.set(0, p);
+                                lowestPrices.set(0, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALMART")) {
+                            System.out.println("WAL-MART PRICE: " + p.getPrice());
+                            if (pricesByRank.get(1) == null || lowestPrices.get(1) > p.getPrice()) {
+                                p.setRank(1);
+                                pricesByRank.set(1, p);
+                                lowestPrices.set(1, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALGREENS")) {
+                            System.out.println("WALGREENS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(2) == null || lowestPrices.get(2) > p.getPrice()) {
+                                p.setRank(2);
+                                pricesByRank.set(2, p);
+                                lowestPrices.set(2, p.getPrice());
+                            }
+                        } else if (isKroger(p.getPharmacy().toUpperCase())) {
+                            System.out.println("KROGER PRICE: " + p.getPrice());
+                            if (pricesByRank.get(3) == null || lowestPrices.get(3) > p.getPrice()) {
+                                p.setRank(3);
+                                pricesByRank.set(3, p);
+                                lowestPrices.set(3, p.getPrice());
+                            }
+                        } else {
+                            System.out.println("FOUND OTHER PRICE: " + p.getPrice());
+                            otherPrices.add(p);
+                            if (pricesByRank.get(4) == null || lowestPrices.get(4) > p.getPrice()) {
+                                p.setRank(4);
+                                pricesByRank.set(4, p);
+                                lowestPrices.set(4, p.getPrice());
+                            }
+                        }
+                    }
+
+                    while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
+                        pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
+                        otherPrices.remove(0);
+                    }
+                }
+            }
+
+            return pricesByRank;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<LocatedDrug> getMedImpact(@RequestBody UIRequestObject UIRequestObject, Map<String, String> longLat, String Brand_indicator) {
@@ -121,12 +223,12 @@ public class MedImpactService {
 
     }
 
-    private String getMedImpactURL(DrugRequest drugRequest) {
+    private static String getMedImpactURL(DrugRequest drugRequest) {
         String s = "https://rxsavings.Medimpact.com/web/rxcard/home?p_p_id=com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view" +
                 "&p_p_cacheability=cacheLevelPage&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_cmd=get_drug_detail" +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_quantity=" + drugRequest.getQuantity() +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_gsn=" + drugRequest.getGsn() +
-                "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_brandGenericFlag=" + drugRequest.getBrandIndicator() +
+                "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_brandGenericFlag=" + drugRequest.getBrandIndicator().charAt(0) +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lat=" + drugRequest.getLatitude() +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_lng=" + drugRequest.getLongitude() +
                 "&_com_cashcard_portal_portlet_CashCardPortlet_INSTANCE_wVwgc3hAI7xv_numdrugs=1";

@@ -11,6 +11,7 @@ import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
 import com.galaxe.drugpriceapi.src.TableModels.SavedManualReportDetails;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.hibernate.jdbc.Work;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -104,10 +105,10 @@ public class ReportService {
     public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<List<String>>> rows) {
 
         // Production
-        String fileName = "/home/files/poi-generated-file.xlsx";
+//        String fileName = "/home/files/poi-generated-file.xlsx";
 
         // QA/Dev
-//        String fileName = "poi-generated-file.xlsx";
+        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
 //        long start = System.currentTimeMillis();
         Sheet sheet1 = workbook.createSheet("92648");
@@ -172,12 +173,13 @@ public class ReportService {
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
-            fileOut = new FileOutputStream(fileName);
-            InputStream fileInputStream = new FileInputStream(fileName);
-            resource = new InputStreamResource(new FileInputStream(fileName));
-//            fileOut = new FileOutputStream("poi-generated-file.xlsx");
-//            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
-//            resource = new InputStreamResource(fileInputStream);
+//            fileOut = new FileOutputStream(fileName);
+//            InputStream fileInputStream = new FileInputStream(fileName);
+//            resource = new InputStreamResource(new FileInputStream(fileName));
+            fileOut = new FileOutputStream("poi-generated-file.xlsx");
+            fileOut.flush();
+            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
+            resource = new InputStreamResource(fileInputStream);
             workbook.write(fileOut);
 
             fileOut.close();
@@ -193,7 +195,7 @@ public class ReportService {
                 .headers(headers)
                 // .contentLength(resumelength)
                 .contentLength(file.length())
-                .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(resource);
 
     }

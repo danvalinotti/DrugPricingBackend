@@ -1,6 +1,7 @@
 package com.galaxe.drugpriceapi.src.Controllers;
 
 import com.galaxe.drugpriceapi.src.Repositories.DrugMasterRepository;
+import com.galaxe.drugpriceapi.src.Repositories.DrugRequestRepository;
 import com.galaxe.drugpriceapi.src.Repositories.PriceRepository;
 import com.galaxe.drugpriceapi.src.Repositories.ReportRepository;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIResponse.PriceDetails;
@@ -10,18 +11,25 @@ import com.galaxe.drugpriceapi.src.Services.*;
 import com.galaxe.drugpriceapi.src.TableModels.DrugMaster;
 import com.galaxe.drugpriceapi.src.Helpers.DrugDescription;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
+import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
 import com.galaxe.drugpriceapi.src.TableModels.Price;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
-
 import java.util.*;
+import static com.galaxe.drugpriceapi.src.Services.RealTimeSearchService.getCompetitorPrices;
+import static com.galaxe.drugpriceapi.src.Services.ZipCodeConverter.getCoords;
+import static java.lang.Integer.parseInt;
 
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 public class PriceController {
     @Autowired
     DrugMasterRepository drugMasterRepository;
+    @Autowired
+    DrugRequestRepository drugRequestRepository;
     @Autowired
     PriceRepository priceRepository;
     @Autowired
@@ -36,24 +44,166 @@ public class PriceController {
         return false;
     }
 
+    @PostMapping("/rts")
+    public ResponseEntity realTimeSearch(@RequestBody UIRequestObject request) throws Throwable {
+        String ndc = request.getDrugNDC();
+        String gsn = request.getGSN();
+        String zipCode = request.getZipcode();
+        LinkedHashMap<String, Object> response = new LinkedHashMap<>();
+
+        try {
+            // Get Drug Master ID from DB
+            DrugMaster drugMaster = drugMasterRepository.findByNdcAndGsn(ndc, gsn);
+            String drugMasterID = drugMaster.getId() + "";
+            System.out.println(drugMasterID);
+            // Get Drug Requests using DM_ID
+            List<DrugRequest> drugRequests = drugRequestRepository.findAllByDrugId(drugMasterID);
+            List<List<Price>> prices = new ArrayList<>();
+            prices.add(null);
+            prices.add(null);
+            prices.add(null);
+            prices.add(null);
+            prices.add(null);
+            prices.add(null);
+            prices.add(null);
+
+            // Build REST resposne object
+            response.put("id", drugMasterID);
+            response.put("name", drugMaster.getName());
+            response.put("dosageStrength", drugMaster.getDosageStrength());
+            response.put("dosageUOM", null);
+            response.put("quantity", drugMaster.getQuantity());
+            response.put("drugType", request.getDrugType());
+            response.put("zipCode", drugMaster.getZipCode());
+            response.put("ndc", drugMaster.getNdc());
+            response.put("gsn", drugMaster.getGsn());
+
+            // General price values
+            final double[] currentPrice = {9999.99};
+            final double[] lmp = {9999.99};
+            final double[] avgSum = {0.0};
+            final double[] priceCount = {0.0};
+
+            // Search for each competitor price
+            drugRequests.parallelStream().forEach(dr -> {
+                DrugRequest drugRequest = dr;
+                // Set location information for Drug Request
+                int programId = drugRequest.getProgramId();
+                System.out.println("Starting Stream (" + programId + ")");
+
+                drugRequest.setZipcode(zipCode);
+                ArrayList<String> coords = getCoords(zipCode);
+                if (coords.size() > 0) {
+                    drugRequest.setLatitude(coords.get(0));
+                    drugRequest.setLongitude(coords.get(1));
+                }
+
+                // Call getCompetitorPrices to get price list for program ID and drug master id
+                List<Price> price = getCompetitorPrices(drugRequests.get(programId), programId);
+
+                // Checks if response was received from RTS
+                if (price != null) {
+                    // Replace null value in prices with programID results
+                    prices.set(drugRequest.getProgramId(), price);
+
+                    // Loop through prices for program
+                    for (int j = 0; j < price.size(); j++) {
+                        Price value = price.get(j);
+                        // Check if price entry is empty
+                        if (value.getPrice() != null || value.getUncPrice() != null) {
+                            // Get InsideRX Current Price
+                            if (programId == 0) {
+                                // Sets current price to lowest of Price and UNCPrice
+                                if (value.getUncPrice() != null && value.getUncPrice() < value.getPrice()) {
+                                    currentPrice[0] = value.getUncPrice();
+                                } else if (currentPrice[0] > value.getPrice()) {
+                                    currentPrice[0] = value.getPrice();
+                                }
+                            }
+
+                            // Check for new Lowest Market Price
+                            if (lmp[0] > value.getPrice()) {
+                                lmp[0] = value.getPrice();
+                            }
+
+                            // Add values for calculating average price
+                            avgSum[0] += value.getPrice();
+                            priceCount[0]++;
+                        // Will only replace empty prices if not Blink
+                        } else if (value.getPrice() == null && programId != 5) {
+                            try {
+                                // Replace empty Price with one from latest report
+                                List<Price> fillPrice = getLatestReportPrice(parseInt(drugRequest.getDrugId()), drugRequest.getProgramId());
+                                if (fillPrice != null) {
+                                    price.set(value.getRank(), fillPrice.get(value.getRank()));
+                                    System.out.println("Replaced empty price with latest report price.");
+                                } else {
+                                    System.out.println("Report price not found.");
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                } else {
+                    prices.add(new ArrayList<>());
+                }
+                System.out.println("Added program ID " + programId);
+
+            });
+
+
+            // Calculate average price
+            double averagePrice = avgSum[0] / priceCount[0];
+            double difference = currentPrice[0] - lmp[0];
+
+            System.out.println("Lowest Market Price: " + lmp[0]);
+            System.out.println("Current Price: " + currentPrice[0]);
+            System.out.println("Average Price: " + averagePrice);
+            System.out.println("Difference: " + difference);
+
+            // Add programs & general price values to response object
+            response.put("averagePrice", averagePrice);
+            response.put("currentPrice", currentPrice[0]);
+            response.put("lowestMarketPrice", lmp[0]);
+            response.put("diff", difference);
+            response.put("programs", prices);
+
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private List<Price> getLatestReportPrice(Integer drugId, Integer programId) {
+        try {
+            System.out.println("DrugID: " + drugId + "\nProgramID: " + programId);
+            return priceRepository.findLatestPriceForDrug(drugId, programId);
+        } catch (Exception ex) {
+            System.out.println("No entries recieved from DB.");
+            return null;
+        }
+    }
+
     //Getting the drug prices for a particular drug
     @PostMapping("/getPharmacyPrice")
     public UIResponseObject getPharmacyList(@RequestBody UIRequestObject UIRequestObject) throws Throwable {
         String drugName = UIRequestObject.getDrugName();
         if (flag) {
             flag = false;
-            setScheduledFutureJob();
         }
         DrugMaster m = new DrugMaster();
 
         try {
             m = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode()).get(0);
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
         try {
             UIRequestObject.setGSN(m.getGsn());
         } catch (Exception ex) {
+            ex.printStackTrace();
         }
         DrugMaster d ;
         UIResponseObject UIResponseObject = new UIResponseObject();

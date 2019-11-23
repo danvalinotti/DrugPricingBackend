@@ -1,5 +1,7 @@
 package com.galaxe.drugpriceapi.src.Services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.galaxe.drugpriceapi.src.Repositories.DrugMasterRepository;
 import com.galaxe.drugpriceapi.src.Repositories.DrugRequestRepository;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
@@ -7,17 +9,29 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.WellRxRequest.WellRxRe
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.WellRxResponse.*;
 import com.galaxe.drugpriceapi.src.TableModels.DrugMaster;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
-import com.google.gson.Gson;
+import com.galaxe.drugpriceapi.src.TableModels.Price;
+import com.google.gson.*;
+import jdk.nashorn.internal.parser.JSONParser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
+import reactor.util.LinkedMultiValueMap;
+import reactor.util.MultiValueMap;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
+import static com.galaxe.drugpriceapi.src.Services.KrogerPriceService.isKroger;
+import static java.lang.Double.parseDouble;
+import static java.lang.Integer.parseInt;
 
 @Component
 public class WellRxService {
@@ -33,8 +47,128 @@ public class WellRxService {
     private Map<String, WellRxPostObject> wellRxPostObjectMap = new HashMap<>();
     private Map<String, List<Strengths>> wellRxDrugGSNMap = new HashMap<>();
     private final String COOKIE_WELLRX = "ASP.NET_SessionId=b3krzxvpcoqy3yvkmmxysdad; __RequestVerificationToken=oRmuCHDrNMEqKZg9UV3r4iIDsfrhl8ufDkRjv-iQdLL0vK1mMcjBvwWRck8WKKLUEGrnxNjcOiG3UkpEjNMx0AzA_p81; wrxBannerID=1; _ga=GA1.2.1291111346.1555693895; _gid=GA1.2.1161917873.1555693895; _gcl_au=1.1.1411719143.1555693895; _fbp=fb.1.1555693895438.2092435015; b1pi=!CMbSNvIHLL2vAYwvLnpW7/Jj8QPM1+xdT0mf6+N2Vks4Ivb0dySAGjF6u88OryJxc2EHkscC+BoJkuk=; _gat=1";
-    private final String COOKIE_WELLRX2 = "_ga=GA1.2.536278151.1556140629; _gcl_au=1.1.16835471.1556140629; _fbp=fb.1.1556140629715.1934721103; ASP.NET_SessionId=0ti2s11351uorufof45ymctu; __RequestVerificationToken=rdkSym5WxayIvoYy37bFSZd1owaTJqlu9u0pJokH-dlVTXGZYwY9eg9RFrfeqdP_xmzgpyoBFXqYsm1lMv9Kk3d02PQ1; _gid=GA1.2.1463898530.1563455908; _hjIncludedInSample=1; wrxBannerID=3; _gat=1; b1pi=!7Me/iyTCp0tP1KwvLnpW7/Jj8QPM145xnWUzspQDwUQeYGpFVcyf4wxN/DwIs7q5bElV8+jz6F+GtP0=";
+    private static final String COOKIE_WELLRX2 = "_ga=GA1.2.536278151.1556140629; _gcl_au=1.1.16835471.1556140629; _fbp=fb.1.1556140629715.1934721103; ASP.NET_SessionId=0ti2s11351uorufof45ymctu; __RequestVerificationToken=rdkSym5WxayIvoYy37bFSZd1owaTJqlu9u0pJokH-dlVTXGZYwY9eg9RFrfeqdP_xmzgpyoBFXqYsm1lMv9Kk3d02PQ1; _gid=GA1.2.1463898530.1563455908; _hjIncludedInSample=1; wrxBannerID=3; _gat=1; b1pi=!7Me/iyTCp0tP1KwvLnpW7/Jj8QPM145xnWUzspQDwUQeYGpFVcyf4wxN/DwIs7q5bElV8+jz6F+GtP0=";
 
+    static ArrayList<Price> getWellRXPrices(DrugRequest drugRequest) {
+        String url = "https://www.wellrx.com/prescriptions/get-specific-drug";
+        RestTemplate template = new RestTemplate();
+
+        WebClient webClient = WebClient.create(url);
+
+//        String uriDrugName = drugRequest.getDrugName().replaceAll("/ |\\//g", "-");
+
+        // Set REST request body
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        JsonObject body = new JsonObject();
+        body.addProperty("gsn", drugRequest.getGsn());
+        body.addProperty("lat", drugRequest.getLatitude());
+        body.addProperty("lng", drugRequest.getLongitude());
+        body.addProperty("numdrugs", "1");
+        body.addProperty("quantity", drugRequest.getQuantity());
+        body.addProperty("bgIndicator", drugRequest.getBrandIndicator().charAt(0) + "");
+        body.addProperty("bReference", drugRequest.getDrugName().toUpperCase());
+        body.addProperty("ncpdps", "null");
+        body.addProperty("BDN", drugRequest.getDrugName().toUpperCase());
+
+        try {
+            // Make POST request
+            Mono<String> s = webClient
+                    .post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Host", "www.wellrx.com")
+                    .header("Referer", "https://www.wellrx.com/prescriptions/humatrope/somerset")
+                    .header("Cookie", COOKIE_WELLRX2)
+                    .header("X-Requested-With", "XMLHttpRequest")
+                    .body(Mono.just(body.toString()), String.class)
+                    .retrieve().bodyToMono(String.class);
+            String block = s.block();
+
+            // Build response object
+            JsonParser parser = new JsonParser();
+            JsonElement jsonElement = parser.parse(Objects.requireNonNull(block));
+            ArrayList<Price> pricesByRank = new ArrayList<>(5);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                ArrayList<Double> lowestPrices = new ArrayList<>(5);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                ArrayList<Price> otherPrices = new ArrayList<>();
+
+                if (jsonObject != null) {
+                    JsonArray prices = jsonObject.get("Drugs").getAsJsonArray();
+                    // Loop through prices in response
+                    for (JsonElement price : prices) {
+                        JsonObject priceObject = price.getAsJsonObject();
+//                        LinkedHashMap priceMap = (LinkedHashMap) price;
+                        Price p = new Price();
+                        p.setProgramId(3);
+                        p.setPharmacy(priceObject.get("PharmacyName").getAsString());
+                        p.setPrice(priceObject.get("Price").getAsDouble());
+                        p.setUncPrice(null);
+                        p.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+
+                        if (p.getPharmacy().toUpperCase().contains("CVS")) {
+                            System.out.println("CVS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(0) == null || lowestPrices.get(0) > p.getPrice()) {
+                                p.setRank(0);
+                                pricesByRank.set(0, p);
+                                lowestPrices.set(0, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALMART")) {
+                            System.out.println("WAL-MART PRICE: " + p.getPrice());
+                            if (pricesByRank.get(1) == null || lowestPrices.get(1) > p.getPrice()) {
+                                p.setRank(1);
+                                pricesByRank.set(1, p);
+                                lowestPrices.set(1, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALGREENS")) {
+                            System.out.println("WALGREENS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(2) == null || lowestPrices.get(2) > p.getPrice()) {
+                                p.setRank(2);
+                                pricesByRank.set(2, p);
+                                lowestPrices.set(2, p.getPrice());
+                            }
+                        } else if (isKroger(p.getPharmacy().toUpperCase())) {
+                            System.out.println("KROGER PRICE: " + p.getPrice());
+                            if (pricesByRank.get(3) == null || lowestPrices.get(3) > p.getPrice()) {
+                                p.setRank(3);
+                                pricesByRank.set(3, p);
+                                lowestPrices.set(3, p.getPrice());
+                            }
+                        } else {
+                            System.out.println("FOUND OTHER PRICE: " + p.getPrice());
+                            otherPrices.add(p);
+                            if (pricesByRank.get(4) == null || lowestPrices.get(4) > p.getPrice()) {
+                                p.setRank(4);
+                                pricesByRank.set(4, p);
+                                lowestPrices.set(4, p.getPrice());
+                            }
+                        }
+                    }
+
+                    while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
+                        pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
+                        otherPrices.remove(0);
+                    }
+                }
+            }
+
+
+            return pricesByRank;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<List<Drugs>> getWellRxDrugInfo(UIRequestObject UIRequestObject, Map<String, String> longitudeLatitude, String brand_indicator) {
@@ -198,7 +332,7 @@ public class WellRxService {
                             Double.parseDouble(s);
                         } catch (Exception e) {
                             try {
-                                Integer.parseInt(s);
+                                parseInt(s);
                             } catch (Exception ex) {
                                 return true;
                             }
@@ -402,7 +536,7 @@ public class WellRxService {
                         Double.parseDouble(s);
                     } catch (Exception e) {
                         try {
-                            Integer.parseInt(s);
+                            parseInt(s);
                         } catch (Exception ex) {
                             return true;
                         }

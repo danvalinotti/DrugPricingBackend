@@ -9,7 +9,8 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.SinglecareResponse.Pri
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.SinglecareResponse.SinglecareResponse;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
-import com.google.gson.Gson;
+import com.galaxe.drugpriceapi.src.TableModels.Price;
+import com.google.gson.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
@@ -19,10 +20,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+
+import static com.galaxe.drugpriceapi.src.Services.KrogerPriceService.isKroger;
+import static java.lang.Double.parseDouble;
+import static java.lang.Integer.parseInt;
+
 @Component
 public class SinglecareService {
     @Autowired
@@ -33,6 +37,113 @@ public class SinglecareService {
     private Gson gson = new Gson();
     private final String SINGLECAREURL = "https://api.singlecare.com/Services/v1_0/Public/PBMService.svc/GetTieredPricing";
     private Comparator<Prices> constructSinglecareComparator = null;
+
+    static ArrayList<Price> getSingleCarePrices(DrugRequest drugRequest) {
+//        String uriDrugName = drugRequest.getDrugName().replaceAll("/ |\\//g", "-");
+        String url = "https://webapi.singlecare.com/api/pbm/tiered-pricing/"
+                + drugRequest.getNdc()
+                + "?qty=" + drugRequest.getQuantity()
+                + "&zipCode=" + drugRequest.getZipcode();
+
+        try {
+            // Initialize WebClient
+            WebClient webClient = WebClient.create(url);
+            Mono<String> s = webClient
+                    .get()
+                    .retrieve().bodyToMono(String.class);
+            String block = s.block();
+
+            // Build response object
+            JsonParser parser = new JsonParser();
+            JsonElement jsonElement = parser.parse(Objects.requireNonNull(block));
+            ArrayList<Price> pricesByRank = new ArrayList<>(5);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                ArrayList<Double> lowestPrices = new ArrayList<>(5);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                lowestPrices.add(0.0);
+                ArrayList<Price> otherPrices = new ArrayList<>();
+
+                if (jsonObject != null) {
+                    // Extract prices array from JSON
+                    JsonObject result = jsonObject.get("Result").getAsJsonObject();
+                    JsonArray prices = result.getAsJsonArray("PharmacyPricings");
+
+                    // Loop through prices in response
+                    for (JsonElement price : prices) {
+                        JsonObject priceObject = price.getAsJsonObject();
+                        JsonArray priceArr = priceObject.getAsJsonArray("Prices");
+                        Price p = new Price();
+                        p.setProgramId(4);
+                        p.setPharmacy(priceObject.getAsJsonObject("Pharmacy").get("Name").getAsString());
+                        p.setPrice(parseDouble(priceArr.get(0).getAsJsonObject().get("Price").getAsString()));
+                        p.setUncPrice(null);
+                        p.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+
+                        if (p.getPharmacy().toUpperCase().contains("CVS")) {
+                            System.out.println("CVS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(0) == null || lowestPrices.get(0) > p.getPrice()) {
+                                p.setRank(0);
+                                pricesByRank.set(0, p);
+                                lowestPrices.set(0, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALMART")) {
+                            System.out.println("WAL-MART PRICE: " + p.getPrice());
+                            if (pricesByRank.get(1) == null || lowestPrices.get(1) > p.getPrice()) {
+                                p.setRank(1);
+                                pricesByRank.set(1, p);
+                                lowestPrices.set(1, p.getPrice());
+                            }
+                        } else if (p.getPharmacy().toUpperCase().contains("WALGREENS")) {
+                            System.out.println("WALGREENS PRICE: " + p.getPrice());
+                            if (pricesByRank.get(2) == null || lowestPrices.get(2) > p.getPrice()) {
+                                p.setRank(2);
+                                pricesByRank.set(2, p);
+                                lowestPrices.set(2, p.getPrice());
+                            }
+                        } else if (isKroger(p.getPharmacy().toUpperCase())) {
+                            System.out.println("KROGER PRICE: " + p.getPrice());
+                            if (pricesByRank.get(3) == null || lowestPrices.get(3) > p.getPrice()) {
+                                p.setRank(3);
+                                pricesByRank.set(3, p);
+                                lowestPrices.set(3, p.getPrice());
+                            }
+                        } else {
+                            System.out.println("FOUND OTHER PRICE: " + p.getPrice());
+                            otherPrices.add(p);
+                            if (pricesByRank.get(4) == null || lowestPrices.get(4) > p.getPrice()) {
+                                p.setRank(4);
+                                pricesByRank.set(4, p);
+                                lowestPrices.set(4, p.getPrice());
+                            }
+                        }
+                    }
+
+                    // Replace empty values with 'Other' prices
+                    while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
+                        pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
+                        otherPrices.remove(0);
+                    }
+                }
+
+                return pricesByRank;
+            } else {
+                return new ArrayList<>();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<PharmacyPricings> getSinglecarePrices(@RequestBody UIRequestObject UIRequestObject) {

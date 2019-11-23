@@ -18,4 +18,7 @@ public interface DrugRequestRepository extends JpaRepository<DrugRequest,Integer
             , nativeQuery = true)
     List<DrugRequest> findByDrugNDCQuantityAndProgramId(String ndc, double quantity, int programId);
 
+    @Query(value = "SELECT * FROM drug_request WHERE drug_id = ?1 ORDER BY program_id ASC", nativeQuery = true)
+    List<DrugRequest> findAllByDrugId(String drugId);
+
 }
