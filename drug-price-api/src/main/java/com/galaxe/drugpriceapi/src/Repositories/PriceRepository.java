@@ -5,16 +5,26 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Repository
 public interface PriceRepository extends JpaRepository<Price,Integer> {
 
+    @Query(value =
+            "SELECT price.* FROM price WHERE price.id IN" +
+                "(SELECT p1.price_id FROM" +
+                    "(SELECT report_drugs.price_id, report_drugs.report_id FROM report_drugs WHERE report_id IN " +
+                        "(SELECT report_table.id FROM report_table ORDER BY timestamp DESC LIMIT 1)" +
+                    ")" +
+                "AS p1)" +
+            "AND price.drug_details_id = ?1 AND price.program_id = ?2 ORDER BY rank", nativeQuery = true)
+    List<Price> findLatestPriceForDrug(Integer drugDetailsId, Integer program_id);
 
     List<Price> findByDrugDetailsId(int drugDetailsId);
 
 
-    @Query(value= "SELECT * FROM price WHERE drug_details_id = ?1 AND program_id= ?2 ORDER BY id DESC"+
+    @Query(value= "SELECT price.* FROM price WHERE drug_details_id = ?1 AND program_id= ?2 ORDER BY id DESC"+
             " LIMIT 2",nativeQuery = true)
     List<Price> findLastPrice(int id,int programId);
 

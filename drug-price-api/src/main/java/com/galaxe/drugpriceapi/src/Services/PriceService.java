@@ -1,7 +1,6 @@
 package com.galaxe.drugpriceapi.src.Services;
 
 import com.galaxe.drugpriceapi.src.Controllers.DrugMasterController;
-import com.galaxe.drugpriceapi.src.Controllers.PriceController;
 import com.galaxe.drugpriceapi.src.Helpers.DrugBrand;
 import com.galaxe.drugpriceapi.src.Helpers.PricesAndMaster;
 import com.galaxe.drugpriceapi.src.Repositories.DrugMasterRepository;
@@ -322,7 +321,7 @@ public class PriceService {
         CompletableFuture<List<Drugs>> wellRxFuture = wellRxService.getWellRxDrugInfo(UIRequestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = medImpactService.getMedImpact(UIRequestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = singlecareService.getSinglecarePrices(UIRequestObject);
-        CompletableFuture<GoodRxResponse> goodRxFuture = goodRxService.getGoodRxPrices(UIRequestObject);
+        CompletableFuture<GoodRxResponse> goodRxFuture = goodRxService.getGoodRxPricesOLD(UIRequestObject);
 
         blinkFuture = blinkClient.getBlinkPharmacyPrice(UIRequestObject);
 
@@ -368,7 +367,7 @@ public class PriceService {
         CompletableFuture<List<Drugs>> wellRxFuture = wellRxService.getWellRxDrugInfo(UIRequestObject, longitudeLatitude, brandType);
         CompletableFuture<LocatedDrug> medImpactFuture = medImpactService.getMedImpact(UIRequestObject, longitudeLatitude, brandType);
         CompletableFuture<PharmacyPricings> singleCareFuture = singlecareService.getSinglecarePrices(UIRequestObject);
-        CompletableFuture<GoodRxResponse> goodRxFuture = goodRxService.getGoodRxPrices(UIRequestObject);
+        CompletableFuture<GoodRxResponse> goodRxFuture = goodRxService.getGoodRxPricesOLD(UIRequestObject);
 
     }
     public String getDrugInfoFromInsideRx(WebClient webClient) {
@@ -727,7 +726,7 @@ public class PriceService {
 
         CompletableFuture<GoodRxResponse> goodRxFuture  = null;
         try {
-            goodRxFuture =   goodRxService.getGoodRxPrices(UIRequestObject);
+            goodRxFuture =   goodRxService.getGoodRxPricesOLD(UIRequestObject);
         }catch (Exception ex){
             goodRxFuture = CompletableFuture.completedFuture(new GoodRxResponse());
         }

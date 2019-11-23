@@ -20,6 +20,10 @@ public class DrugRequest {
     @Column
     String drugId;
     @Column
+    String drugType;
+    @Column
+    String dosageStrength;
+    @Column
     int programId;
     @Column
     String longitude;

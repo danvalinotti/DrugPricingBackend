@@ -8,18 +8,24 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObj
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.BlinkHealthResponse.PharmacyResponse.BlinkPharmacyResponse;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.BlinkHealthResponse.PharmacyResponse.PharmacyDetails;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
-import com.google.gson.Gson;
+import com.google.gson.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static com.galaxe.drugpriceapi.src.Services.KrogerPriceService.isKroger;
+import static java.lang.Double.parseDouble;
+import static java.lang.Integer.parseInt;
 
 @Component
 public class BlinkClient {
@@ -35,6 +41,97 @@ public class BlinkClient {
 
     @Autowired
     DrugMasterRepository drugMasterRepository;
+
+    // Specify TableModel Price object
+    static ArrayList<com.galaxe.drugpriceapi.src.TableModels.Price> getBlinkPrices(DrugRequest drugRequest) {
+        String uriDrugName = drugRequest.getDrugName().replaceAll("/ |\\//g", "-").toLowerCase();
+        String url = "https://www.blinkhealth.com/api/v2/user/drugs/detail/" + uriDrugName + "/dosage/" + drugRequest.getGood_rx_id() + "/quantity/" + drugRequest.getQuantity();
+
+        try {
+            // Initialize WebClient
+            WebClient webClient = WebClient.create(url);
+            Mono<String> s = webClient
+                    .get()
+                    .retrieve().bodyToMono(String.class);
+            String block = s.block();
+
+            // Build response object
+            JsonParser parser = new JsonParser();
+            JsonElement jsonElement = parser.parse(Objects.requireNonNull(block));
+            ArrayList<com.galaxe.drugpriceapi.src.TableModels.Price> pricesByRank = new ArrayList<>(5);
+
+            if (jsonElement.isJsonObject()) {
+                JsonObject jsonObject = jsonElement.getAsJsonObject();
+
+                // Get Everyday Low Price
+                Double edlp = jsonObject.getAsJsonObject("result").getAsJsonObject("price").getAsJsonObject("edlp").get("raw_value").getAsDouble();
+                com.galaxe.drugpriceapi.src.TableModels.Price p1 = new com.galaxe.drugpriceapi.src.TableModels.Price();
+                com.galaxe.drugpriceapi.src.TableModels.Price p2 = new com.galaxe.drugpriceapi.src.TableModels.Price();
+                p1.setRank(3);
+                p2.setRank(4);
+                p1.setProgramId(5);
+                p2.setProgramId(5);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(null);
+                pricesByRank.add(p1);
+                pricesByRank.add(p2);
+
+                // Extract prices array from JSON
+                JsonObject result = jsonObject.getAsJsonObject("result");
+                JsonObject prices = result.getAsJsonObject("price");
+
+                // Blink Price types
+                JsonObject localObject = prices.getAsJsonObject("local");
+                JsonObject edlpObject = prices.getAsJsonObject("edlp");
+                JsonObject deliveryObject = prices.getAsJsonObject("delivery");
+
+                // Create price objects for the 3 types of Blink prices
+                com.galaxe.drugpriceapi.src.TableModels.Price localPrice = new com.galaxe.drugpriceapi.src.TableModels.Price();
+                com.galaxe.drugpriceapi.src.TableModels.Price edlpPrice = new com.galaxe.drugpriceapi.src.TableModels.Price();
+                com.galaxe.drugpriceapi.src.TableModels.Price deliveryPrice = new com.galaxe.drugpriceapi.src.TableModels.Price();
+                // Blink Delivery
+                deliveryPrice.setRank(0);
+                deliveryPrice.setProgramId(5);
+                deliveryPrice.setPrice(deliveryObject.get("raw_value").getAsDouble());
+                deliveryPrice.setUncPrice(null);
+                deliveryPrice.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+                deliveryPrice.setPharmacy("Blink Home Delivery");
+                // Blink Everyday Low Price
+                edlpPrice.setRank(1);
+                edlpPrice.setProgramId(5);
+                edlpPrice.setPrice(edlpObject.get("raw_value").getAsDouble());
+                edlpPrice.setUncPrice(null);
+                edlpPrice.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+                edlpPrice.setPharmacy("Blink Everyday Low Price");
+                // Blink Smart Deal (Local)
+                localPrice.setRank(2);
+                deliveryPrice.setProgramId(5);
+                localPrice.setPrice(localObject.get("raw_value").getAsDouble());
+                localPrice.setUncPrice(null);
+                localPrice.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+                localPrice.setPharmacy("Blink \"Smart Deal\"");
+
+                // Add to price list
+                pricesByRank.set(0, deliveryPrice);
+                pricesByRank.set(1, edlpPrice);
+                pricesByRank.set(2, localPrice);
+
+//                pricesByRank.forEach(p -> {
+//                    System.out.println(p.getRank());
+//                    System.out.println(p.getPharmacy());
+//                    System.out.println(p.getPrice());
+//                });
+
+                return pricesByRank;
+            } else {
+                return new ArrayList<>();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
 
     @Async("threadPoolTaskExecutor")
     public CompletableFuture<PharmacyDetails> getBlinkPharmacy(UIRequestObject UIRequestObject) {

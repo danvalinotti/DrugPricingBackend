@@ -16,6 +16,8 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIResponse.PriceDetail
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -117,39 +119,36 @@ public class DrugDashboardController {
     }
 
     @PostMapping(value = "/dashboard/drugs/add")
-    public Dashboard addDrugToDashboard(@RequestBody UIRequestObject UIRequestObject) throws Throwable {
-        Dashboard d = new Dashboard();
-        DrugMaster drugMaster;
+    @ResponseBody
+    public ResponseEntity<HttpStatus> addDrugToDashboard(@RequestBody UIRequestObject UIRequestObject) {
         try {
-            drugMaster = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode()).get(0);
+            // Find drug in drug_master table
+            Dashboard d = new Dashboard();
+            DrugMaster drugMaster = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode()).get(0);
+            d.setDrugMasterId(drugMaster.getId());
+
+            // Find user in DB and set User ID
+            d.setUserId(profileRepository.findByActiveToken(UIRequestObject.getToken()).get(0).getId());
+
+            List<String> existingDrugs = dashboardRepository.findDistinctDrugsByUserId(d.getUserId());
+
+            // Check if drug is already in the dashboard, if so return HTTP 409
+            if (existingDrugs.contains(d.getDrugMasterId().toString())) {
+                return new ResponseEntity<>(HttpStatus.CONFLICT);
+            } else {
+                // Save to dashboard table and send HTTP OK
+                dashboardRepository.save(d);
+                return new ResponseEntity<>(HttpStatus.OK);
+            }
         } catch (Exception e) {
-            DrugMaster drugMaster1 = new DrugMaster();
-            drugMaster1.setZipCode(UIRequestObject.getZipcode());
-            drugMaster1.setDrugType(UIRequestObject.getDrugType());
-            drugMaster1.setNdc(UIRequestObject.getDrugNDC());
-            drugMaster1.setDosageStrength(UIRequestObject.getDosageStrength());
-            drugMaster1.setName(UIRequestObject.getDrugName());
-            drugMaster1.setQuantity(UIRequestObject.getQuantity());
-            String brandType = priceService.getBrandIndicator(UIRequestObject).intern();
-            drugMaster1.setDrugType(brandType);
-            drugMaster = drugMasterRepository.save(drugMaster1);
-
-            priceService.createDrugRequests(UIRequestObject);
-            //ADD DrugRequstCreation
+            // If drug is not in drug_master
+            e.printStackTrace();
+            System.out.println(e.getClass().getCanonicalName());
+            if (e.getClass().getCanonicalName().equals("java.lang.IndexOutOfBoundsException")) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            } else {
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         }
-
-
-        d.setDrugMasterId(drugMaster.getId());
-        Profile testProfile = new Profile();
-        testProfile.setName(UIRequestObject.getToken());
-        String username = drugAuthController.authenticateToken(testProfile).getUsername();
-        Profile signedInUser = profileRepository.findByUsername(username).get(0);
-
-        d.setUserId(signedInUser.getId());
-        priceService.addPrices(UIRequestObject, drugMaster);
-
-        return dashboardRepository.save(d);
     }
-
-
 }
