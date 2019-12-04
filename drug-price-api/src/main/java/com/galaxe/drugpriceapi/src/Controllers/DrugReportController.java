@@ -235,7 +235,6 @@ public class DrugReportController {
     public ResponseEntity<Resource> getReportRows(@PathVariable String r){
         Integer reportId = Integer.parseInt(r);
 
-
         List<List<List<String>>> sheets = new ArrayList<>();
         List<String> zipCodes = new ArrayList<>();
 

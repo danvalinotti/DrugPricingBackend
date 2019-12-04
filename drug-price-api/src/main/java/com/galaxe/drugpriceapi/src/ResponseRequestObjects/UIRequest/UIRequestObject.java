@@ -7,8 +7,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UIRequestObject {
+    private String id;
 
     private String zipcode;
+
+    private String ndc;
 
     private String drugName;
 
@@ -31,6 +34,8 @@ public class UIRequestObject {
     private Boolean reportFlag;
 
     private String GSN;
+
+    private String brandIndicator;
 
 }
 

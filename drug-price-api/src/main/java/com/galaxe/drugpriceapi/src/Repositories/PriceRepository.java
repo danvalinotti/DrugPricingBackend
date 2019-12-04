@@ -29,12 +29,19 @@ public interface PriceRepository extends JpaRepository<Price,Integer> {
     List<Price> findLastPrice(int id,int programId);
 
     @Query(value = "SELECT price.* FROM report_drugs right outer join price on report_drugs.price_id = price.id " +
-            " WHERE report_id = ?2 AND drug_details_id = ?1 ORDER BY price.program_id, price.rank", nativeQuery = true)
+            " WHERE rank = 0 and  report_id = ?2 AND drug_details_id = ?1 ORDER BY price.program_id, price.rank", nativeQuery = true)
     List<Price> findRecentPricesByDrugId(int id, int report_id);
 
     @Query(value = "SELECT price.* from price" +
             " right outer join report_drugs on report_drugs.price_id = price.id" +
             " where report_drugs.report_id = ?3 and price.drug_details_id = ?1 and price.rank = ?2 ORDER BY price.program_id ", nativeQuery = true)
     List<Price> findByDrugDetailsIdAndRankAndReportId(int id, int i, int report_id);
+
+    @Query(value = "SELECT price.* from price" +
+            " right outer join report_drugs on report_drugs.price_id = price.id" +
+            " where report_drugs.report_id = ?1 and price.drug_details_id in (\n" +
+            "            select drug_id from report_dm\n" +
+            "    ) and price.rank = 0 ORDER BY price.program_id ", nativeQuery = true)
+    List<Price> findDashboardDrugPrices(int reportId);
 
 }
