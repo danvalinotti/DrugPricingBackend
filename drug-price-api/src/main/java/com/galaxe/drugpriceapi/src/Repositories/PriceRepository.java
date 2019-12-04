@@ -37,6 +37,11 @@ public interface PriceRepository extends JpaRepository<Price,Integer> {
             " where report_drugs.report_id = ?3 and price.drug_details_id = ?1 and price.rank = ?2 ORDER BY price.program_id ", nativeQuery = true)
     List<Price> findByDrugDetailsIdAndRankAndReportId(int id, int i, int report_id);
 
+    @Query(value = "SELECT price.* from price " +
+            "right outer join report_drugs on report_drugs.price_id = price.id " +
+            "where price.drug_details_id = ?1 and price.rank = ?2 and report_drugs.report_id = ?3 and price.program_id = ?4 ", nativeQuery = true)
+    List<Price> findByDrugDetailsIdAndRankAndReportIdAndProgramId(int drugDetailsId, int rank, int reportId, int programId);
+
     @Query(value = "SELECT price.* from price" +
             " right outer join report_drugs on report_drugs.price_id = price.id" +
             " where report_drugs.report_id = ?1 and price.drug_details_id in (\n" +

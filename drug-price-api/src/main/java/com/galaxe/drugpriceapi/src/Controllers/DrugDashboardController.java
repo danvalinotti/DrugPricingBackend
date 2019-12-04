@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -135,7 +136,7 @@ public class DrugDashboardController {
                                 }
 
                                 // Get current list of prices for program
-                                List<PriceDetails> priceDetailsList = programs.get(parseInt(priceDetails.getProgram())).getPrices();
+                                ArrayList<PriceDetails> priceDetailsList = programs.get(parseInt(priceDetails.getProgram())).getPrices();
 
                                 // Add new price to programs list and save to program entry
                                 priceDetailsList.add(priceDetails);
@@ -146,7 +147,7 @@ public class DrugDashboardController {
                             responseObject.setRecommendedPrice("");
 
                             for (int i = 0; i < 6; i++) {
-                                List<PriceDetails> priceDetailsList = new ArrayList<>();
+                                ArrayList<PriceDetails> priceDetailsList = new ArrayList<>();
                                 PriceDetails p = new PriceDetails();
                                 p.setPrice("");
                                 p.setPharmacy("");
@@ -171,91 +172,11 @@ public class DrugDashboardController {
                 }
             });
 
-//            LinkedHashMap<String, Object> response = new LinkedHashMap<>();
-//            response.put("id", responseObject.getId());
-//            response.put("name", responseObject.getName());
-//            response.put("dosageStrength", responseObject.getDosageStrength());
-//            response.put("dosageUOM", responseObject.getDosageUOM());
-//            response.put("quantity", responseObject.getQuantity());
-//            response.put("drugType", responseObject.getDrugType());
-//            response.put("zipcode", responseObject.getZipcode());
-//            response.put("ndc", responseObject.getNdc());
-//            response.put("recommendedPrice", responseObject.getRecommendedPrice());
-//            response.put("averagePrice", responseObject.getAverage());
-//            response.put("programs", responseObject.getPrograms());
-
             return ResponseEntity.ok().body(dashboardPrices);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(null);
         }
-    }
-
-    @PostMapping("/dashboard/get")
-    List<UIResponseObject> getDashboard(@RequestBody Token token) {
-        Profile testProfile = new Profile();
-        testProfile.setName(token.getValue());
-        String userName = drugAuthController.authenticateToken(testProfile).getUsername();
-        Profile signedInUser = profileRepository.findByUsername(userName).get(0);
-        int userId = signedInUser.getId();
-        List<String> drugList = dashboardRepository.findDistinctDrugsByUserId(userId);
-        Integer reportId = reportRepository.findFirstByOrderByTimestampDesc().getId();
-        List<DrugMaster> drugMasters = new ArrayList<>();
-        List<UIResponseObject> mongoEntities = new ArrayList<>();
-
-        for (String s : drugList) {
-            try {
-                DrugMaster drugMaster = drugMasterRepository.findById(parseInt(s)).get();
-                drugMasters.add(drugMaster);
-                UIResponseObject UIResponseObject = new UIResponseObject();
-
-                UIResponseObject.setQuantity(drugMaster.getQuantity() + "");
-                //mongoEntity.setPharmacyName("");
-                UIResponseObject.setNdc(drugMaster.getNdc());
-                UIResponseObject.setDrugType(drugMaster.getDrugType());
-                UIResponseObject.setDosageStrength(drugMaster.getDosageStrength());
-                UIResponseObject.setName(drugMaster.getName());
-                UIResponseObject.setZipcode(drugMaster.getZipCode());
-
-                List<Price> prices = priceRepository.findByDrugDetailsIdAndRankAndReportId(drugMaster.getId(),0,reportId);
-                List<Programs> programs = new ArrayList<>();
-                UIResponseObject.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
-                UIResponseObject.setAverage(prices.get(0).getAveragePrice() + "");
-                PriceDetails[] programArr = new PriceDetails[7];
-
-                for (int i = 0; i < programArr.length; i++) {
-                    PriceDetails program = new PriceDetails();
-                    program.setProgram(i + "");
-                    program.setPrice("N/A");
-                    program.setPharmacy("N/A");
-                    programArr[i] = program;
-                }
-                for (Price p : prices) {
-                    PriceDetails program = new PriceDetails();
-                    program.setProgram(p.getProgramId() + "");
-                    program.setPrice(p.getPrice() + "");
-                    program.setPharmacy(p.getPharmacy());
-                    programArr[p.getProgramId()] = program;
-                }
-
-
-                List<PriceDetails> programsList = Arrays.asList(programArr);
-                List<Programs> programs1 = new ArrayList<>();
-                for (PriceDetails prog :programsList) {
-                    List<PriceDetails> newList= new ArrayList<>();
-                    newList.add(prog);
-                    Programs programs2 = new Programs();
-                    programs2.setPrices(newList);
-                    programs1.add(programs2);
-                }
-                UIResponseObject.setPrograms(programs1);
-                mongoEntities.add(UIResponseObject);
-            }catch(Exception ex){
-                ex.printStackTrace();
-            }
-        }
-
-        return mongoEntities;
     }
 
     @PostMapping(value = "/dashboard/add")

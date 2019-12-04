@@ -6,6 +6,7 @@ import com.galaxe.drugpriceapi.src.ResponseRequestObjects.InsideRxRequest.Inside
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.InsideRxResponse.InsideRxPrice;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.InsideRxResponse.InsideRxResponse;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIRequest.UIRequestObject;
+import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIResponse.PriceDetailsComparator;
 import com.galaxe.drugpriceapi.src.TableModels.DrugRequest;
 import com.galaxe.drugpriceapi.src.TableModels.Price;
 import com.google.gson.Gson;
@@ -145,9 +146,13 @@ public class InsideRxService {
                     }
                 }
 
-                while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
-                    pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
-                    otherPrices.remove(0);
+                while (pricesByRank.indexOf(null) != -1) {
+                    if (otherPrices.size() > 0 ) {
+                        pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
+                        otherPrices.remove(0);
+                    } else {
+                        pricesByRank.remove(pricesByRank.indexOf(null));
+                    }
                 }
 
             }
