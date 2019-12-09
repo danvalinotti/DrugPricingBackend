@@ -157,7 +157,6 @@ public class WellRxService {
 
                     while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
                         pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
-                        otherPrices.remove(0);
                     }
                 }
             }

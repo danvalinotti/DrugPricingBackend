@@ -65,6 +65,8 @@ public class PriceController {
                 // Get Drug Requests using DM_ID
                 drugRequests = drugRequestRepository.findAllByDrugId(drugMasterID);
             } catch (Exception e) {
+                // If search for drug_master entry or drug_request entry fails
+                // Build request manually from POST request data
                 drugMaster = new DrugMaster();
                 drugMaster.setZipCode(request.getZipcode());
                 drugMaster.setDosageStrength(request.getDosageStrength());
@@ -87,6 +89,7 @@ public class PriceController {
                     drugRequest.setGsn(drugMaster.getGsn());
                     drugRequest.setZipcode(drugMaster.getZipCode());
 
+                    // Set location data
                     List<String> coords = getCoords(drugRequest.getZipcode());
                     drugRequest.setLatitude(coords.get(0));
                     drugRequest.setLongitude(coords.get(1));
@@ -122,12 +125,36 @@ public class PriceController {
 
             // Search for each competitor price
             drugRequests.parallelStream().forEach(dr -> {
-                // Set location information for Drug Request
+                // Copy variable for changes
+                // noinspection UnnecessaryLocalVariable
                 DrugRequest drugRequest = dr;
-                drugRequest.setQuantity(Math.round(request.getQuantity()) + "");
                 int programId = drugRequest.getProgramId();
                 System.out.println("Starting Stream (" + programId + ")");
 
+                // Use request data for formatting reasons
+                drugRequest.setDrugName(request.getDrugName());
+
+                // Use POST request data instead of drug_request data for quantity
+                // Only if drug is of type package or carton
+                if (!(drugRequest.getDrugType().equals("tablet") || drugRequest.getDrugType().equals("capsule"))) {
+                    drugRequest.setQuantity(Math.round(request.getQuantity()) + "");
+                }
+
+                // Not sure if necessary.
+//                try {
+//                    //
+//                    if (drugRequest.getDosageStrength() == null) {
+//                        drugRequest.setDosageStrength(request.getDosageStrength());
+//                    }
+//
+//                    if (drugRequest.getDrugType() == null) {
+//                        drugRequest.setDrugType(request.getDrugType());
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+
+                // Set location info from post request
                 drugRequest.setZipcode(zipCode);
                 ArrayList<String> coords = getCoords(zipCode);
                 if (coords.size() > 0) {
@@ -136,22 +163,22 @@ public class PriceController {
                 }
 
                 List<Price> competitorPrices = new ArrayList<>();
-                // Call getCompetitorPrices to get price list for program ID and drugRequestug master id
+                // Call getCompetitorPrices to get price list for program ID and drugRequest drug_id
                 try {
                      competitorPrices = getCompetitorPrices(drugRequest, programId);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
-                // Checks if response was received from RTS
-                if (competitorPrices != null) {
-                    // Replace null value in prices with programID results
-                    prices.set(drugRequest.getProgramId(), competitorPrices);
+                // Replace null value in prices with programID results
+                prices.set(drugRequest.getProgramId(), competitorPrices);
 
-                    // Loop through prices for program
-                    try {
+                // Loop through prices for program
+                try {
+                    if (competitorPrices != null && competitorPrices.size() > 0 && competitorPrices.indexOf(null) == -1) {
                         for (int j = 0; j < competitorPrices.size(); j++) {
                             Price value = competitorPrices.get(j);
+
                             // Check if price entry is empty
                             if (value != null && (value.getPrice() != null || value.getUncPrice() != null)) {
                                 // Get InsideRX Current Price
@@ -173,14 +200,13 @@ public class PriceController {
                                 avgSum[0] += value.getPrice();
                                 priceCount[0]++;
                             // Will only replace empty prices if not Blink
-                            } else if ((value == null || value.getPrice() == null) && programId != 5) {
+                            } else if (value != null && value.getPrice() == null && programId != 5) {
                                 // Replace empty Price with one from latest report
                                 try {
                                     List<Price> fillPrice = getLatestReportPrice(parseInt(drugRequest.getDrugId()), drugRequest.getProgramId(), value.getRank());
-                                    if (fillPrice != null && fillPrice.size() > 0) {
+                                    if (fillPrice != null && fillPrice.size() == 1) {
                                         System.out.println(fillPrice.size());
-                                        competitorPrices.set(j, fillPrice.get(0));
-                                        System.out.println("Replaced empty price with latest report price.");
+                                        competitorPrices.set(value.getRank(), fillPrice.get(0));
                                     } else {
                                         System.out.println("Report price not found.");
                                     }
@@ -189,18 +215,34 @@ public class PriceController {
                                 }
                             }
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    prices.add(new ArrayList<>());
-                }
-                System.out.println("Added program ID " + programId);
+                    } else {
+                        // Drug price search comes back empty
+                        for (int i = 0; i < 5; i++) {
+                            try {
+                                System.out.println(drugRequest.getDrugId() + " " + drugRequest.getProgramId() + " Rank " + i);
+                                List<Price> fillPrice = getLatestReportPrice(parseInt(drugRequest.getDrugId()), drugRequest.getProgramId(), i);
 
+                                // If price found in DB, add
+                                if (fillPrice != null && fillPrice.size() == 1) {
+                                    if (fillPrice.get(0).getPrice() != null && competitorPrices != null) {
+                                        if (competitorPrices.get(i) != null) {
+                                            competitorPrices.set(i, fillPrice.get(0));
+                                        } else {
+                                            competitorPrices.add(fillPrice.get(0));
+                                        }
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             });
 
-
-
+            // If InsideRx price is not found
             if (currentPrice[0] == 9999.99) {
                 currentPrice[0] = -1.0;
             }
@@ -213,6 +255,7 @@ public class PriceController {
             System.out.println("Average Price: " + averagePrice);
             System.out.println("Difference: " + difference);
 
+            // Loop replaces empty values with ones from DB
             List<Programs> programs = new ArrayList<>();
             for (int i = 0; i < 7; i++) {
                 if (prices.get(i) == null) {
@@ -244,16 +287,21 @@ public class PriceController {
                         priceDetailsList.add(p);
                     }
 
+                    // Sort prices by price
                     Collections.sort(priceDetailsList);
 
+                    // Set rank for each price by index
                     for (int k = 0; k < priceDetailsList.size(); k++) {
                         priceDetailsList.get(k).setRank(k + "");
                     }
+                    // Add prices to program object
                     program.setPrices(priceDetailsList);
                 }
+                // Add program to programs[]
                 programs.add(program);
             }
 
+            // Attempt to get description from InsideRx service
             String desc = "";
             try {
                 WebClient webClient = WebClient.create("https://insiderx.com/request/medication/"+ request.getDrugName().toLowerCase().replace(" ", "-")+"/details?locale=en-US");
@@ -261,7 +309,7 @@ public class PriceController {
                 assert description != null;
                 desc = description.getDescription();
             } catch (Exception e) {
-//                e.printStackTrace();
+                // If not found, make empty description
                 desc = "";
             }
 
@@ -273,12 +321,12 @@ public class PriceController {
             response.put("recommendedDiff", difference);
             response.put("programs", programs);
 
+            // HTTP 200
             return ResponseEntity.ok().body(response);
         } catch (Exception e) {
-            // If drug not in DB, use old method to get prices
             e.printStackTrace();
-//                UIResponseObject prices = getPharmacyList(request);
-            return new ResponseEntity(HttpStatus.BAD_REQUEST);
+            // HTTP 500
+            return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }

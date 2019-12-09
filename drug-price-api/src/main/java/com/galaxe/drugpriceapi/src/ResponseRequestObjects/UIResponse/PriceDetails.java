@@ -33,8 +33,14 @@ public class PriceDetails implements Comparable {
 
     @Override
     public int compareTo(Object p2) {
-        if (p2 instanceof PriceDetails && ((PriceDetails) p2).getPrice() != null) {
-            return (int) Math.round(parseDouble(this.getPrice()) - parseDouble(((PriceDetails) p2).getPrice()));
+
+        try {
+            if (!((PriceDetails) p2).getPrice().equals("null") && !(this.getPrice().equals("null"))) {
+                return (int) Math.round(parseDouble(this.getPrice()) - parseDouble(((PriceDetails) p2).getPrice()));
+            }
+        } catch (Exception e) {
+            System.out.println("Cannot compare prices as price is null.");
+            return -1;
         }
 
         return -1;

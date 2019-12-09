@@ -172,9 +172,12 @@ public class ReportService {
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
+            // Production
             fileOut = new FileOutputStream(fileName);
             InputStream fileInputStream = new FileInputStream(fileName);
             resource = new InputStreamResource(new FileInputStream(fileName));
+
+            // QA/DEV
 //            fileOut = new FileOutputStream("poi-generated-file.xlsx");
 //            fileOut.flush();
 //            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
