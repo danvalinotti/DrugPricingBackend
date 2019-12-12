@@ -105,10 +105,10 @@ public class ReportService {
     public ResponseEntity<Resource> exportManualReportMultipleSheets(List<List<List<String>>> rows) {
 
         // Production
-        String fileName = "/home/files/poi-generated-file.xlsx";
+//        String fileName = "/home/files/poi-generated-file.xlsx";
 
         // QA/Dev
-//        String fileName = "poi-generated-file.xlsx";
+        String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet1 = workbook.createSheet("92648");
         Sheet sheet2 = workbook.createSheet("30062");
@@ -173,14 +173,14 @@ public class ReportService {
         InputStreamResource resource = null;
         try {
             // Production
-            fileOut = new FileOutputStream(fileName);
-            InputStream fileInputStream = new FileInputStream(fileName);
-            resource = new InputStreamResource(new FileInputStream(fileName));
+//            fileOut = new FileOutputStream(fileName);
+//            InputStream fileInputStream = new FileInputStream(fileName);
+//            resource = new InputStreamResource(new FileInputStream(fileName));
 
             // QA/DEV
-//            fileOut = new FileOutputStream("poi-generated-file.xlsx");
-//            fileOut.flush();
-//            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
+            fileOut = new FileOutputStream("poi-generated-file.xlsx");
+            fileOut.flush();
+            InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");
             resource = new InputStreamResource(fileInputStream);
             workbook.write(fileOut);
 

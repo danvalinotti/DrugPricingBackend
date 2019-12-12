@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.lang.Double.parseDouble;
 import static java.lang.Integer.parseInt;
 
 
@@ -52,7 +53,7 @@ public class DrugDashboardController {
 
     @PostMapping(value = "/dashboard/drug/delete")
     public void deleteDashboardDrug(@RequestBody UIResponseObject UIResponseObject) {
-        DrugMaster drugMaster = drugMasterRepository.findAllByFields(UIResponseObject.getNdc(), Double.parseDouble(UIResponseObject.getQuantity()), UIResponseObject.getZipcode()).get(0);
+        DrugMaster drugMaster = drugMasterRepository.findAllByFields(UIResponseObject.getNdc(), parseDouble(UIResponseObject.getQuantity()), UIResponseObject.getZipcode()).get(0);
         List<Dashboard> dashboards = dashboardRepository.findByDrugMasterId(drugMaster.getId());
         dashboardRepository.deleteAll(dashboards);
     }
@@ -162,8 +163,12 @@ public class DrugDashboardController {
                             }
 
                         }
-
                         responseObject.setPrograms(programs);
+
+                        // Calculate difference between recommended price and current price
+                        double diff = parseDouble(responseObject.getRecommendedPrice()) - parseDouble(responseObject.getPrograms().get(0).getPrices().get(0).getPrice());
+                        responseObject.setRecommendedDiff(diff + "");
+
                         System.out.println("ZIP CODE: " + responseObject.getZipcode());
                         dashboardPrices.add(responseObject);
                     } catch (Exception e) {

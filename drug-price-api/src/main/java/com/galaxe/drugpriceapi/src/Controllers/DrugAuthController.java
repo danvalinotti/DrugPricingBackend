@@ -32,7 +32,7 @@ public class DrugAuthController {
     public Profile createToken(@RequestBody Profile profile) {
         try {
             Profile profile1 = profileRepository.findByUsername(profile.getUsername()).get(0);
-            if (BCrypt.checkpw(profile.getPassword(), profile1.getPassword()) == true) {
+            if (BCrypt.checkpw(profile.getPassword(), profile1.getPassword())) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 String profileJson = "";
                 try {
