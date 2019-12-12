@@ -157,7 +157,6 @@ public class WellRxService {
 
                     while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
                         pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
-                        otherPrices.remove(0);
                     }
                 }
             }
@@ -175,7 +174,8 @@ public class WellRxService {
         int drugId = 0;
         try {
             try {
-                drugId = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode()).get(0).getId();
+                List<DrugMaster> drugMaster = drugMasterRepository.findAllByFields(UIRequestObject.getDrugNDC(), UIRequestObject.getQuantity(), UIRequestObject.getZipcode());
+                drugId = drugMaster.get(0).getId();
 
                  if (drugRequestRepository.findByDrugIdAndProgramId(drugId+"", 2).size() != 0) {
 

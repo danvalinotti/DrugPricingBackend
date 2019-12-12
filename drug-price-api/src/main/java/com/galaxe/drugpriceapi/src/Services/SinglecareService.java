@@ -87,7 +87,6 @@ public class SinglecareService {
                         p.setPharmacy(priceObject.getAsJsonObject("Pharmacy").get("Name").getAsString());
                         p.setPrice(parseDouble(priceArr.get(0).getAsJsonObject().get("Price").getAsString()));
                         p.setUncPrice(null);
-                        p.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
 
                         if (p.getPharmacy().toUpperCase().contains("CVS")) {
                             System.out.println("CVS PRICE: " + p.getPrice());

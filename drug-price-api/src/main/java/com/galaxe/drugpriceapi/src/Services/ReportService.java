@@ -110,7 +110,6 @@ public class ReportService {
         // QA/Dev
         String fileName = "poi-generated-file.xlsx";
         Workbook workbook = new XSSFWorkbook();
-//        long start = System.currentTimeMillis();
         Sheet sheet1 = workbook.createSheet("92648");
         Sheet sheet2 = workbook.createSheet("30062");
         Sheet sheet3 = workbook.createSheet("60657");
@@ -173,9 +172,12 @@ public class ReportService {
         FileOutputStream fileOut;
         InputStreamResource resource = null;
         try {
+            // Production
 //            fileOut = new FileOutputStream(fileName);
 //            InputStream fileInputStream = new FileInputStream(fileName);
 //            resource = new InputStreamResource(new FileInputStream(fileName));
+
+            // QA/DEV
             fileOut = new FileOutputStream("poi-generated-file.xlsx");
             fileOut.flush();
             InputStream fileInputStream = new FileInputStream("poi-generated-file.xlsx");

@@ -44,9 +44,10 @@ public class BlinkClient {
 
     // Specify TableModel Price object
     static ArrayList<com.galaxe.drugpriceapi.src.TableModels.Price> getBlinkPrices(DrugRequest drugRequest) {
-        String uriDrugName = drugRequest.getDrugName().replaceAll("/ |\\//g", "-").toLowerCase();
+        String uriDrugName = drugRequest.getDrugName().replaceAll(" ", "-").toLowerCase();
         String url = "https://www.blinkhealth.com/api/v2/user/drugs/detail/" + uriDrugName + "/dosage/" + drugRequest.getGood_rx_id() + "/quantity/" + drugRequest.getQuantity();
 
+        System.out.println(url);
         try {
             // Initialize WebClient
             WebClient webClient = WebClient.create(url);

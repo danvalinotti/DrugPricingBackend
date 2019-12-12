@@ -36,11 +36,14 @@ public class GoodRxService {
 
     public static ArrayList<Price> getGoodRxPrices(DrugRequest drugRequest) {
         // Build API URL and build WebClient
+        System.out.println("Start goodrx");
+        String dosageStrength = drugRequest.getDosageStrength().replaceAll(" ", "-");
         String url = "https://goodrx.com/api/v4/drugs/" +
                 drugRequest.getGood_rx_id() + "/prices" +
                 "?location=" + drugRequest.getLongitude() + "," + drugRequest.getLatitude() + "&location_type=LAT_LNG_GEO_IP" +
+                "&dosage" + dosageStrength +
                 "&quantity=" + ((int) parseDouble(drugRequest.getQuantity()));
-        RestTemplate template = new RestTemplate();
+        System.out.println(url);
         WebClient webClient = WebClient.create(url);
 
         try {
@@ -94,6 +97,7 @@ public class GoodRxService {
                         p.setPrice(priceObject.get("prices").getAsJsonArray().get(0).getAsJsonObject().get("price").getAsDouble());
                         p.setUncPrice(null);
                         p.setDrugDetailsId(parseInt(drugRequest.getDrugId()));
+                        System.out.println("GOODRX PRICES");
 
                         if (p.getPharmacy().toUpperCase().contains("CVS")) {
                             System.out.println("CVS PRICE: " + p.getPrice());
@@ -135,6 +139,7 @@ public class GoodRxService {
                     }
 
                     while (pricesByRank.indexOf(null) != -1 && otherPrices.size() > 0) {
+                        System.out.println("GOODRX SET OTHER PRICE");
                         pricesByRank.set(pricesByRank.indexOf(null), otherPrices.get(0));
                         otherPrices.remove(0);
                     }

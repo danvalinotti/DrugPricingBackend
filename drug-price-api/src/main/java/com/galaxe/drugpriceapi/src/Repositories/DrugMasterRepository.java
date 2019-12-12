@@ -11,8 +11,8 @@ import java.util.List;
 public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> {
 
     @Query(value = "SELECT * FROM drug_master "
-            + "WHERE drug_master.ndc = ?1 AND drug_master.gsn = ?2 LIMIT 1", nativeQuery = true)
-    DrugMaster findByNdcAndGsn(String ndc, String gsn);
+            + "WHERE drug_master.ndc = ?1 LIMIT 1", nativeQuery = true)
+    DrugMaster findByNdc(String ndc);
 
     @Query(value= "SELECT * FROM drug_master "+
             "WHERE drug_master.ndc = ?1 AND drug_master.quantity = ?2 AND drug_master.zip_code= ?3 ",nativeQuery = true)
@@ -35,4 +35,6 @@ public interface DrugMasterRepository extends JpaRepository<DrugMaster,Integer> 
     List<DrugMaster> getAllWithoutZipCode();
 
     List<DrugMaster> findByReportFlagOrderById(boolean b);
+
+    DrugMaster getById(Integer id);
 }
