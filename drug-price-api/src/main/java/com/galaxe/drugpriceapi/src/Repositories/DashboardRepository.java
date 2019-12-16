@@ -13,6 +13,9 @@ public interface DashboardRepository extends JpaRepository<Dashboard,Integer> {
     @Query(value="SELECT DISTINCT drug_master_id from dashboard WHERE user_id = ?1" , nativeQuery = true)
     List<String> findDistinctDrugsByUserId(int i);
 
+    List<Dashboard> findAllByUserId(int userId);
 
     List<Dashboard> findByDrugMasterId(int i);
+
+    List<Dashboard> findAllByDrugMasterIdAndUserId(int drugMasterId, int userId);
 }

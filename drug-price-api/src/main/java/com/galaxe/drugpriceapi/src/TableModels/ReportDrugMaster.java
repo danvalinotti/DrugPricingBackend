@@ -20,7 +20,5 @@ public class ReportDrugMaster {
     @Column
     Integer drugId;
     @Column
-    Integer userId;
-    @Column
     String schedule;
 }
