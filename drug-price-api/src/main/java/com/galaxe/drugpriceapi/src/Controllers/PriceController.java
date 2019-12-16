@@ -136,23 +136,22 @@ public class PriceController {
 
                 // Use POST request data instead of drug_request data for quantity
                 // Only if drug is of type package or carton
-                if (!(drugRequest.getDrugType().equals("tablet") || drugRequest.getDrugType().equals("capsule"))) {
+                if (drugRequest.getDrugType() != null && !(drugRequest.getDrugType().equals("tablet") || drugRequest.getDrugType().equals("capsule"))) {
                     drugRequest.setQuantity(Math.round(request.getQuantity()) + "");
                 }
 
                 // Not sure if necessary.
-//                try {
-//                    //
-//                    if (drugRequest.getDosageStrength() == null) {
-//                        drugRequest.setDosageStrength(request.getDosageStrength());
-//                    }
-//
-//                    if (drugRequest.getDrugType() == null) {
-//                        drugRequest.setDrugType(request.getDrugType());
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
+                try {
+                    if (drugRequest.getDosageStrength() == null) {
+                        drugRequest.setDosageStrength(request.getDosageStrength());
+                    }
+
+                    if (drugRequest.getDrugType() == null) {
+                        drugRequest.setDrugType(request.getDrugType());
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 // Set location info from post request
                 drugRequest.setZipcode(zipCode);

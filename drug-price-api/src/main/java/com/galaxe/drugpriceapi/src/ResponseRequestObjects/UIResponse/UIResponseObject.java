@@ -53,6 +53,8 @@ public class UIResponseObject {
 
     private String diffFromLast;
 
+    private String schedule;
+
     public String getCompositeId(String ndc, String dosage, String quantity, String zipcode) {
         return ndc + dosage + quantity + zipcode;
     }

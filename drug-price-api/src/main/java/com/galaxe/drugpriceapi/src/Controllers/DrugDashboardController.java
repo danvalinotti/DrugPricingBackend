@@ -1,6 +1,5 @@
 package com.galaxe.drugpriceapi.src.Controllers;
 
-import com.galaxe.drugpriceapi.src.Helpers.Token;
 import com.galaxe.drugpriceapi.src.Repositories.*;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIResponse.UIResponseObject;
 import com.galaxe.drugpriceapi.src.ResponseRequestObjects.UIResponse.Programs;
@@ -17,10 +16,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.Array;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,6 +55,145 @@ public class DrugDashboardController {
         DrugMaster drugMaster = drugMasterRepository.findAllByFields(UIResponseObject.getNdc(), parseDouble(UIResponseObject.getQuantity()), UIResponseObject.getZipcode()).get(0);
         List<Dashboard> dashboards = dashboardRepository.findByDrugMasterId(drugMaster.getId());
         dashboardRepository.deleteAll(dashboards);
+    }
+
+    // Get dashboard drugs for user
+    @PostMapping(value = "/dashboard/user/get")
+    public ResponseEntity getUserDashboard(@RequestBody UIRequestObject request) {
+        try {
+            List<UIResponseObject> dashboardPrices = new ArrayList<>();
+
+            // Get user ID for active login
+            List<Profile> profile = profileRepository.findByActiveToken(request.getToken());
+            if (profile.size() > 0) {
+                // Get drug masters from report_dm by user ID
+                List<ReportDrugMaster> reportDrugMasters = reportDrugMasterRepository.findAllByUserId(profile.get(0).getId());
+                if (reportDrugMasters.size() > 0) {
+                    try {
+                        // Get latest report ID
+                        int reportId = reportRepository.findFirstByOrderByTimestampDesc().getId();
+                        System.out.println(reportId);
+
+                        List<Price> drugPrices = priceRepository.findDashboardDrugPrices(reportId);
+
+                        reportDrugMasters.forEach(reportDrugMaster -> {
+                            // Get drug_master entries
+                            DrugMaster drugMaster = drugMasterRepository.getById(reportDrugMaster.getDrugId());
+
+                            if (drugMaster != null) {
+                                UIResponseObject responseObject = new UIResponseObject();
+                                // Build response object if drug found in drug_master
+                                responseObject.setId(drugMaster.getId() + "");
+                                responseObject.setName(drugMaster.getName());
+                                responseObject.setDosageStrength(drugMaster.getDosageStrength());
+                                responseObject.setDosageUOM("null");
+                                responseObject.setQuantity(drugMaster.getQuantity() + "");
+                                responseObject.setDrugType(drugMaster.getDrugType());
+                                responseObject.setZipcode(drugMaster.getZipCode());
+                                responseObject.setNdc(drugMaster.getNdc());
+                                responseObject.setSchedule(reportDrugMaster.getSchedule());
+
+                                System.out.println(drugMaster.getZipCode());
+
+                                List<Programs> programs = new ArrayList<>();
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.add(new Programs());
+                                programs.get(0).setPrices(new ArrayList<>());
+                                programs.get(1).setPrices(new ArrayList<>());
+                                programs.get(2).setPrices(new ArrayList<>());
+                                programs.get(3).setPrices(new ArrayList<>());
+                                programs.get(4).setPrices(new ArrayList<>());
+                                programs.get(5).setPrices(new ArrayList<>());
+                                programs.get(6).setPrices(new ArrayList<>());
+
+                                try {
+                                    // Get recent prices for drug entry
+                                    List<Price> prices = drugPrices.stream()
+                                            .filter(price -> drugMaster.getId() == price.getDrugDetailsId())
+                                            .collect(Collectors.toList());
+
+                                    if (prices.size() > 0) {
+                                        responseObject.setAverage(prices.get(0).getAveragePrice() + "");
+                                        responseObject.setRecommendedPrice(prices.get(0).getRecommendedPrice() + "");
+
+
+                                        for (Price price : prices) {
+                                            // Set values for new price entry for program
+                                            PriceDetails priceDetails = new PriceDetails();
+                                            priceDetails.setProgram(price.getProgramId() + "");
+                                            priceDetails.setPrice(price.getPrice() + "");
+                                            priceDetails.setPharmacy(price.getPharmacy());
+                                            priceDetails.setDiff(price.getDifference() + "");
+                                            priceDetails.setDiffPerc("");
+                                            if (price.getUncPrice() != null) {
+                                                priceDetails.setUncPrice(price.getUncPrice() + "");
+                                                priceDetails.setUncPriceFlag(true);
+                                            } else {
+                                                priceDetails.setUncPrice(null);
+                                                priceDetails.setUncPriceFlag(false);
+                                            }
+
+                                            // Get current list of prices for program
+                                            ArrayList<PriceDetails> priceDetailsList = programs.get(parseInt(priceDetails.getProgram())).getPrices();
+
+                                            // Add new price to programs list and save to program entry
+                                            priceDetailsList.add(priceDetails);
+                                            programs.get(parseInt(priceDetails.getProgram())).setPrices(priceDetailsList);
+                                        }
+                                    } else {
+                                        responseObject.setAverage("");
+                                        responseObject.setRecommendedPrice("");
+
+                                        for (int i = 0; i < 6; i++) {
+                                            ArrayList<PriceDetails> priceDetailsList = new ArrayList<>();
+                                            PriceDetails p = new PriceDetails();
+                                            p.setPrice("");
+                                            p.setPharmacy("");
+                                            p.setUncPriceFlag(false);
+                                            p.setUncPrice("");
+                                            p.setDiffPerc("");
+                                            p.setDiff("");
+                                            p.setProgram(i + "");
+
+                                            priceDetailsList.add(p);
+                                            programs.get(i).setPrices(priceDetailsList);
+                                        }
+
+                                    }
+                                    responseObject.setPrograms(programs);
+
+                                    // Calculate difference between recommended price and current price
+                                    double diff = parseDouble(responseObject.getRecommendedPrice()) - parseDouble(responseObject.getPrograms().get(0).getPrices().get(0).getPrice());
+                                    responseObject.setRecommendedDiff(diff + "");
+
+                                    System.out.println("ZIP CODE: " + responseObject.getZipcode());
+                                    dashboardPrices.add(responseObject);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
+
+                        return ResponseEntity.ok().body(dashboardPrices);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return ResponseEntity.status(500).body(null);
+                    }
+                } else {
+                    return ResponseEntity.ok().body(new ArrayList<>());
+                }
+            } else {
+                return ResponseEntity.ok().body(new ArrayList<>());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(null);
+        }
     }
 
     @GetMapping(value = "/dashboard/getAll")
@@ -189,10 +327,12 @@ public class DrugDashboardController {
     public ResponseEntity<HttpStatus> addDrugToDashboard(@RequestBody UIRequestObject uiRequestObject) {
         try {
             long numDrugs = reportDrugMasterRepository.count();
+            List<Profile> profile = profileRepository.findByActiveToken(uiRequestObject.getToken());
 
             // Check if max drugs (500) exist in report_dm
-            if (numDrugs < 2500) {
+            if (numDrugs < 2500 && profile.size() > 0) {
                 // Pulls drugs from 'drug_master' table
+                Integer userId = profile.get(0).getId();
                 List<DrugMaster> drugMasters = drugMasterRepository.findAllByNDCQuantity(uiRequestObject.getDrugNDC(), uiRequestObject.getQuantity());
                 System.out.println("Drug Master Size: " + drugMasters.size());
 
@@ -208,6 +348,8 @@ public class DrugDashboardController {
                         if (existingEntry.size() == 0) {
                             // If not, add to report_dm table
                             reportDrugMaster.setDrugId(drugMaster.getId());
+                            reportDrugMaster.setUserId(userId);
+                            reportDrugMaster.setSchedule(uiRequestObject.getSchedule());
                             reportDrugMasterRepository.save(reportDrugMaster);
                             System.out.println("Added drug ID " + drugMaster.getId() + " to report_dm table.");
                         } else {
@@ -265,17 +407,23 @@ public class DrugDashboardController {
     public ResponseEntity<HttpStatus> removeDrugFromDashboard(@RequestBody UIRequestObject uiRequestObject) {
         try {
             // Make sure drug exists in drug_master
-            List<ReportDrugMaster> reportDrugMasters = reportDrugMasterRepository.findAllByDrugId(parseInt(uiRequestObject.getId()));
+            List<Profile> profile = profileRepository.findByActiveToken(uiRequestObject.getToken());
+            if (profile.size() > 0) {
+                Integer userId = profile.get(0).getId();
+                List<ReportDrugMaster> reportDrugMasters = reportDrugMasterRepository.findAllByUserIdAndDrugId(userId, parseInt(uiRequestObject.getId()));
 
-            if (reportDrugMasters.size() > 0) {
-                // Delete drug from DB
-                // Return HTTP 200
-                reportDrugMasterRepository.delete(reportDrugMasters.get(0));
-                return new ResponseEntity<>(HttpStatus.OK);
+                if (reportDrugMasters.size() > 0) {
+                    // Delete drug from DB
+                    // Return HTTP 200
+                    reportDrugMasterRepository.delete(reportDrugMasters.get(0));
+                    return new ResponseEntity<>(HttpStatus.OK);
+                } else {
+                    // Drug already deleted or does not exist
+                    // Return HTTP 208
+                    return new ResponseEntity<>(HttpStatus.ALREADY_REPORTED);
+                }
             } else {
-                // Drug already deleted or does not exist
-                // Return HTTP 208
-                return new ResponseEntity<>(HttpStatus.ALREADY_REPORTED);
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
         } catch (Exception e) {
             e.printStackTrace();
