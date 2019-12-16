@@ -55,8 +55,6 @@ public class WellRxService {
 
         WebClient webClient = WebClient.create(url);
 
-//        String uriDrugName = drugRequest.getDrugName().replaceAll("/ |\\//g", "-");
-
         // Set REST request body
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
         JsonObject body = new JsonObject();

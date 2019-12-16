@@ -37,5 +37,7 @@ public class UIRequestObject {
 
     private String brandIndicator;
 
+    private String schedule;
+
 }
 

@@ -19,4 +19,8 @@ public class ReportDrugMaster {
     int id;
     @Column
     Integer drugId;
+    @Column
+    Integer userId;
+    @Column
+    String schedule;
 }
